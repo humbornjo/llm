@@ -671,7 +671,7 @@ func convertToolChoice(choice any) openai.ChatCompletionToolChoiceOptionUnionPar
 }
 
 // convertTools converts provider tools to OpenAI format.
-func convertTools(tools []providers.Tool) []openai.ChatCompletionToolParam {
+func convertTools(tools []providers.ToolInfo) []openai.ChatCompletionToolParam {
 	result := make([]openai.ChatCompletionToolParam, 0, len(tools))
 	for _, tool := range tools {
 		result = append(result, openai.ChatCompletionToolParam{

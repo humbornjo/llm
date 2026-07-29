@@ -242,7 +242,7 @@ func TestExtractImages(t *testing.T) {
 func TestConvertTools(t *testing.T) {
 	t.Parallel()
 
-	tools := []providers.Tool{
+	tools := []providers.ToolInfo{
 		{
 			Type: toolTypeFunction,
 			Function: providers.Function{
@@ -769,7 +769,7 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:      model,
 		Messages:   testutil.ToolCallMessages(),
-		Tools:      []providers.Tool{testutil.WeatherTool()},
+		Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice: "auto",
 	}
 
@@ -803,7 +803,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:    model,
 		Messages: messages,
-		Tools:    []providers.Tool{testutil.WeatherTool()},
+		Tools:    []providers.ToolInfo{testutil.WeatherTool()},
 	}
 
 	// The model should respond with the weather information.

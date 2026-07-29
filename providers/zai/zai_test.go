@@ -302,7 +302,7 @@ func TestCreateRequest(t *testing.T) {
 					ToolCallID: "call_abc",
 				},
 			},
-			Tools:      []providers.Tool{testutil.WeatherTool()},
+			Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 			ToolChoice: "auto",
 		}
 
@@ -830,7 +830,7 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:      testutil.TestModel(providerName),
 		Messages:   testutil.ToolCallMessages(),
-		Tools:      []providers.Tool{testutil.WeatherTool()},
+		Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice: "auto",
 	}
 
@@ -860,7 +860,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	tools := []providers.Tool{testutil.WeatherTool()}
+	tools := []providers.ToolInfo{testutil.WeatherTool()}
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
@@ -924,7 +924,7 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	tools := []providers.Tool{testutil.NewTestCalculatorTool(t)}
+	tools := []providers.ToolInfo{testutil.NewTestCalculatorTool(t)}
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
@@ -1048,7 +1048,7 @@ func TestIntegrationAgentLoopContinuation(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:    testutil.TestModel(providerName),
 		Messages: messages,
-		Tools:    []providers.Tool{testutil.WeatherTool()},
+		Tools:    []providers.ToolInfo{testutil.WeatherTool()},
 	}
 
 	// The model should respond with the weather information.

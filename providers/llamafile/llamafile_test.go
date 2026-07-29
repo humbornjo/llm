@@ -234,7 +234,7 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:      testutil.TestModel(providerName),
 		Messages:   testutil.ToolCallMessages(),
-		Tools:      []providers.Tool{testutil.WeatherTool()},
+		Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice: "auto",
 	}
 

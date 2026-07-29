@@ -155,8 +155,8 @@ func AgentLoopMessages() []providers.Message {
 }
 
 // WeatherTool returns a weather tool definition for testing.
-func WeatherTool() providers.Tool {
-	return providers.Tool{
+func WeatherTool() providers.ToolInfo {
+	return providers.ToolInfo{
 		Type: "function",
 		Function: providers.Function{
 			Name:        "get_weather",
@@ -176,8 +176,8 @@ func WeatherTool() providers.Tool {
 }
 
 // DateTool returns a date tool definition for testing.
-func DateTool() providers.Tool {
-	return providers.Tool{
+func DateTool() providers.ToolInfo {
+	return providers.ToolInfo{
 		Type: "function",
 		Function: providers.Function{
 			Name:        "get_current_date",
@@ -193,10 +193,10 @@ func DateTool() providers.Tool {
 // NewTestCalculatorTool returns a calculator tool with multiple parameters for testing.
 // This tool is useful for verifying that parameter order and required fields
 // are correctly preserved during conversion.
-func NewTestCalculatorTool(t *testing.T) providers.Tool {
+func NewTestCalculatorTool(t *testing.T) providers.ToolInfo {
 	t.Helper()
 
-	return providers.Tool{
+	return providers.ToolInfo{
 		Type: "function",
 		Function: providers.Function{
 			Name:        "calculate",

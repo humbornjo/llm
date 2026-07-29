@@ -484,7 +484,7 @@ type chatRequest struct {
 	Messages    []messageParam   `json:"messages"`
 	Stream      bool             `json:"stream,omitempty"`
 	Thinking    *thinkingParam   `json:"thinking,omitempty"`
-	Tools       []providers.Tool `json:"tools,omitempty"`
+	Tools       []providers.ToolInfo `json:"tools,omitempty"`
 	ToolChoice  any              `json:"tool_choice,omitempty"`
 	Temperature *float64         `json:"temperature,omitempty"`
 	TopP        *float64         `json:"top_p,omitempty"`

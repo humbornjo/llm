@@ -112,7 +112,7 @@ type (
 type (
 	Function           = providers.Function
 	FunctionCall       = providers.FunctionCall
-	Tool               = providers.Tool
+	ToolInfo           = providers.ToolInfo
 	ToolCall           = providers.ToolCall
 	ToolChoice         = providers.ToolChoice
 	ToolChoiceFunction = providers.ToolChoiceFunction
@@ -178,17 +178,17 @@ var (
 
 // Error types.
 type (
-	AuthenticationError           = errors.AuthenticationError
-	BaseError                     = errors.BaseError
-	ContentFilterError            = errors.ContentFilterError
-	ContextLengthError            = errors.ContextLengthError
-	InsufficientFundsError        = errors.InsufficientFundsError
-	InvalidRequestError           = errors.InvalidRequestError
-	MissingAPIKeyError            = errors.MissingAPIKeyError
-	ModelNotFoundError            = errors.ModelNotFoundError
-	ProviderError                 = errors.ProviderError
-	RateLimitError                = errors.RateLimitError
-	UnsupportedOperationError     = errors.UnsupportedOperationError
-	UnsupportedParamError         = errors.UnsupportedParamError
-	UnsupportedProviderError      = errors.UnsupportedProviderError
+	AuthenticationError       = errors.AuthenticationError
+	BaseError                 = errors.BaseError
+	ContentFilterError        = errors.ContentFilterError
+	ContextLengthError        = errors.ContextLengthError
+	InsufficientFundsError    = errors.InsufficientFundsError
+	InvalidRequestError       = errors.InvalidRequestError
+	MissingAPIKeyError        = errors.MissingAPIKeyError
+	ModelNotFoundError        = errors.ModelNotFoundError
+	ProviderError             = errors.ProviderError
+	RateLimitError            = errors.RateLimitError
+	UnsupportedOperationError = errors.UnsupportedOperationError
+	UnsupportedParamError     = errors.UnsupportedParamError
+	UnsupportedProviderError  = errors.UnsupportedProviderError
 )

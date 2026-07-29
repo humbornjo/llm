@@ -622,7 +622,7 @@ func convertToolMessage(msg providers.Message) *api.Message {
 }
 
 // convertTools converts provider tools to Ollama format.
-func convertTools(tools []providers.Tool) api.Tools {
+func convertTools(tools []providers.ToolInfo) api.Tools {
 	result := make(api.Tools, 0, len(tools))
 
 	for _, tool := range tools {

@@ -93,7 +93,7 @@ type CompletionParams struct {
     Stream bool `json:"stream,omitempty"`
 
     // Tools available for the model to call.
-    Tools []Tool `json:"tools,omitempty"`
+    Tools []ToolInfo `json:"tools,omitempty"`
 
     // ToolChoice controls tool selection behavior.
     // Can be "auto", "none", "required", or a ToolChoice struct.
@@ -197,10 +197,16 @@ const (
 
 ## Tool Calling
 
+`ToolInfo` is the provider-facing declaration stored in
+`CompletionParams.Tools`. The separate `Tool` interface adds executable
+behavior for agent loops without coupling provider request conversion to tool
+dispatch. It exposes `Info`, `Function`, `Execute`, and `ExecuteStream`;
+execution-specific metadata is carried by `ToolOption`.
+
 ### Defining Tools
 
 ```go
-tools := []anyllm.Tool{
+tools := []anyllm.ToolInfo{
     {
         Type: "function",
         Function: anyllm.Function{
