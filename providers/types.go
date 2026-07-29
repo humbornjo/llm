@@ -80,7 +80,11 @@ type Provider interface {
 	// Completion performs a chat completion request.
 	Completion(ctx context.Context, params CompletionParams) (*ChatCompletion, error)
 
-	// CompletionStream yields chat completion chunks and terminal stream errors.
+	// CompletionStream returns a lazy, single-consumer sequence of chat
+	// completion chunks and terminal stream errors. The context remains owned by
+	// the caller and must stay valid until iteration ends. Canceling it terminates
+	// the provider request and yields its context error. Stopping iteration early
+	// terminates the request without yielding an additional error.
 	CompletionStream(ctx context.Context, params CompletionParams) iter.Seq2[ChatCompletionChunk, error]
 }
 

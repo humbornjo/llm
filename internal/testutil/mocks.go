@@ -59,34 +59,41 @@ func NewMockProvider() *MockProvider {
 		},
 		CompletionStreamFunc: func(ctx context.Context, params providers.CompletionParams) iter.Seq2[providers.ChatCompletionChunk, error] {
 			return func(yield func(providers.ChatCompletionChunk, error) bool) {
-				if !yield(providers.ChatCompletionChunk{
-					ID:     "mock-chunk-id",
-					Object: "chat.completion.chunk",
-					Model:  params.Model,
-					Choices: []providers.ChunkChoice{
-						{Index: 0, Delta: providers.ChunkDelta{Role: providers.RoleAssistant}},
+				chunks := []providers.ChatCompletionChunk{
+					{
+						ID:     "mock-chunk-id",
+						Object: "chat.completion.chunk",
+						Model:  params.Model,
+						Choices: []providers.ChunkChoice{
+							{Index: 0, Delta: providers.ChunkDelta{Role: providers.RoleAssistant}},
+						},
 					},
-				}, nil) {
-					return
+					{
+						ID:     "mock-chunk-id",
+						Object: "chat.completion.chunk",
+						Model:  params.Model,
+						Choices: []providers.ChunkChoice{
+							{Index: 0, Delta: providers.ChunkDelta{Content: "Hello World"}},
+						},
+					},
+					{
+						ID:     "mock-chunk-id",
+						Object: "chat.completion.chunk",
+						Model:  params.Model,
+						Choices: []providers.ChunkChoice{
+							{Index: 0, FinishReason: providers.FinishReasonStop},
+						},
+					},
 				}
-				if !yield(providers.ChatCompletionChunk{
-					ID:     "mock-chunk-id",
-					Object: "chat.completion.chunk",
-					Model:  params.Model,
-					Choices: []providers.ChunkChoice{
-						{Index: 0, Delta: providers.ChunkDelta{Content: "Hello World"}},
-					},
-				}, nil) {
-					return
+				for _, chunk := range chunks {
+					if err := ctx.Err(); err != nil {
+						yield(providers.ChatCompletionChunk{}, err)
+						return
+					}
+					if !yield(chunk, nil) {
+						return
+					}
 				}
-				yield(providers.ChatCompletionChunk{
-					ID:     "mock-chunk-id",
-					Object: "chat.completion.chunk",
-					Model:  params.Model,
-					Choices: []providers.ChunkChoice{
-						{Index: 0, FinishReason: providers.FinishReasonStop},
-					},
-				}, nil)
 			}
 		},
 		EmbeddingFunc: func(ctx context.Context, params providers.EmbeddingParams) (*providers.EmbeddingResponse, error) {

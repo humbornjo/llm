@@ -227,16 +227,29 @@ func (p *Provider) CompletionStream(
 	params providers.CompletionParams,
 ) iter.Seq2[providers.ChatCompletionChunk, error] {
 	return func(yield func(providers.ChatCompletionChunk, error) bool) {
+		streamCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
 		req, err := p.convertParams(params)
 		if err != nil {
 			yield(providers.ChatCompletionChunk{}, err)
 			return
 		}
 
-		stream := p.client.Messages.NewStreaming(ctx, req)
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+			return
+		}
+
+		stream := p.client.Messages.NewStreaming(streamCtx, req)
+		defer func() { _ = stream.Close() }()
 		state := newStreamState()
 
 		for stream.Next() {
+			if err := streamCtx.Err(); err != nil {
+				yield(providers.ChatCompletionChunk{}, err)
+				return
+			}
 			event := stream.Current()
 
 			switch event.Type {
@@ -262,7 +275,9 @@ func (p *Provider) CompletionStream(
 			}
 		}
 
-		if err := stream.Err(); err != nil {
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+		} else if err := stream.Err(); err != nil {
 			yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
 		}
 	}

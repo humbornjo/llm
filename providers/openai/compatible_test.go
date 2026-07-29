@@ -396,10 +396,33 @@ func TestStreamingContextCancellation(t *testing.T) {
 			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
 		}
 
-		for range provider.CompletionStream(ctx, params) {
+		var got error
+		for _, streamErr := range provider.CompletionStream(ctx, params) {
+			got = streamErr
 		}
+		require.ErrorIs(t, got, context.Canceled)
+	})
 
-		// Test passes if it doesn't hang.
+	t.Run("preserves deadline errors", func(t *testing.T) {
+		t.Parallel()
+
+		provider, err := NewCompatible(CompatibleConfig{
+			Name:           "test-provider",
+			DefaultBaseURL: "http://localhost:9999/v1",
+			DefaultAPIKey:  "test-key",
+		})
+		require.NoError(t, err)
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+		defer cancel()
+
+		var got error
+		for _, streamErr := range provider.CompletionStream(ctx, providers.CompletionParams{
+			Model:    "test-model",
+			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+		}) {
+			got = streamErr
+		}
+		require.ErrorIs(t, got, context.DeadlineExceeded)
 	})
 
 	// Regression for #85: context cancellation must be yielded explicitly so
@@ -436,10 +459,160 @@ func TestStreamingContextCancellation(t *testing.T) {
 			cancel()
 		}()
 
-		var got error
-		for _, streamErr := range provider.CompletionStream(ctx, params) {
-			got = streamErr
+		var (
+			chunkCount int
+			errorCount int
+			got        error
+		)
+		for chunk, streamErr := range provider.CompletionStream(ctx, params) {
+			if streamErr != nil {
+				errorCount++
+				got = streamErr
+				continue
+			}
+			if len(chunk.Choices) > 0 {
+				chunkCount++
+			}
 		}
 		require.ErrorIs(t, got, context.Canceled)
+		require.Equal(t, 1, errorCount)
+		require.Zero(t, chunkCount)
+	})
+}
+
+func TestCompletionStreamLifecycle(t *testing.T) {
+	params := providers.CompletionParams{
+		Model:    "test-model",
+		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+	}
+
+	t.Run("starts lazily", func(t *testing.T) {
+		requested := make(chan struct{})
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			close(requested)
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		}))
+		t.Cleanup(srv.Close)
+
+		provider, err := NewCompatible(CompatibleConfig{
+			Name:           "test-provider",
+			DefaultBaseURL: srv.URL + "/v1",
+			DefaultAPIKey:  "test-key",
+		})
+		require.NoError(t, err)
+
+		stream := provider.CompletionStream(t.Context(), params)
+		select {
+		case <-requested:
+			t.Fatal("CompletionStream started before iteration")
+		default:
+		}
+
+		for _, streamErr := range stream {
+			require.NoError(t, streamErr)
+		}
+		select {
+		case <-requested:
+		case <-time.After(time.Second):
+			t.Fatal("CompletionStream did not start during iteration")
+		}
+	})
+
+	t.Run("stopping iteration closes the request", func(t *testing.T) {
+		requestDone := make(chan struct{})
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte(`data: {"id":"chunk","object":"chat.completion.chunk","model":"test-model","choices":[{"index":0,"delta":{"content":"hello"}}]}
+
+`))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			<-r.Context().Done()
+			close(requestDone)
+		}))
+		t.Cleanup(srv.Close)
+
+		provider, err := NewCompatible(CompatibleConfig{
+			Name:           "test-provider",
+			DefaultBaseURL: srv.URL + "/v1",
+			DefaultAPIKey:  "test-key",
+		})
+		require.NoError(t, err)
+
+		for _, streamErr := range provider.CompletionStream(t.Context(), params) {
+			require.NoError(t, streamErr)
+			break
+		}
+
+		select {
+		case <-requestDone:
+		case <-time.After(time.Second):
+			t.Fatal("request remained active after iteration stopped")
+		}
+	})
+
+	t.Run("parent cancellation closes the request while consumer is blocked", func(t *testing.T) {
+		requestDone := make(chan struct{})
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte(`data: {"id":"chunk","object":"chat.completion.chunk","model":"test-model","choices":[{"index":0,"delta":{"content":"hello"}}]}
+
+`))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			<-r.Context().Done()
+			close(requestDone)
+		}))
+		t.Cleanup(srv.Close)
+
+		provider, err := NewCompatible(CompatibleConfig{
+			Name:           "test-provider",
+			DefaultBaseURL: srv.URL + "/v1",
+			DefaultAPIKey:  "test-key",
+		})
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		consumerBlocked := make(chan struct{})
+		releaseConsumer := make(chan struct{})
+		iterationDone := make(chan error, 1)
+		go func() {
+			first := true
+			var got error
+			for _, streamErr := range provider.CompletionStream(ctx, params) {
+				if streamErr != nil {
+					got = streamErr
+					continue
+				}
+				if first {
+					first = false
+					close(consumerBlocked)
+					<-releaseConsumer
+				}
+			}
+			iterationDone <- got
+		}()
+
+		select {
+		case <-consumerBlocked:
+		case <-time.After(time.Second):
+			t.Fatal("consumer did not receive the first chunk")
+		}
+		cancel()
+		select {
+		case <-requestDone:
+		case <-time.After(time.Second):
+			t.Fatal("parent cancellation did not close the blocked stream request")
+		}
+		close(releaseConsumer)
+		select {
+		case got := <-iterationDone:
+			require.ErrorIs(t, got, context.Canceled)
+		case <-time.After(time.Second):
+			t.Fatal("stream iteration did not finish after cancellation")
+		}
 	})
 }

@@ -5,8 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	stderrors "errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genai"
@@ -1518,6 +1521,97 @@ func TestIntegrationCompletionStream(t *testing.T) {
 
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
+}
+
+func TestCompletionStreamContextCancellation(t *testing.T) {
+	requestStarted := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		close(requestStarted)
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := genai.NewClient(t.Context(), &genai.ClientConfig{
+		APIKey:  "test-key",
+		Backend: genai.BackendGeminiAPI,
+		HTTPOptions: genai.HTTPOptions{
+			BaseURL: srv.URL,
+		},
+	})
+	require.NoError(t, err)
+	provider := &Provider{client: client}
+	params := providers.CompletionParams{
+		Model:    "test-model",
+		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		select {
+		case <-requestStarted:
+			cancel()
+		case <-time.After(time.Second):
+			cancel()
+		}
+	}()
+
+	var (
+		got        error
+		errorCount int
+	)
+	for _, streamErr := range provider.CompletionStream(ctx, params) {
+		if streamErr != nil {
+			errorCount++
+			got = streamErr
+		}
+	}
+	require.ErrorIs(t, got, context.Canceled)
+	require.Equal(t, 1, errorCount)
+}
+
+func TestCompletionStreamEarlyStopClosesRequest(t *testing.T) {
+	requestDone := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(`data: {"candidates":[{"content":{"parts":[{"text":"hello"}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":1,"candidatesTokenCount":1,"totalTokenCount":2}}
+
+`))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		<-r.Context().Done()
+		close(requestDone)
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := genai.NewClient(t.Context(), &genai.ClientConfig{
+		APIKey:  "test-key",
+		Backend: genai.BackendGeminiAPI,
+		HTTPOptions: genai.HTTPOptions{
+			BaseURL: srv.URL,
+		},
+	})
+	require.NoError(t, err)
+	provider := &Provider{client: client}
+	params := providers.CompletionParams{
+		Model:    "test-model",
+		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+	}
+
+	for _, streamErr := range provider.CompletionStream(t.Context(), params) {
+		require.NoError(t, streamErr)
+		break
+	}
+
+	select {
+	case <-requestDone:
+	case <-time.After(time.Second):
+		t.Fatal("request remained active after iteration stopped")
+	}
 }
 
 func TestIntegrationCompletionConversation(t *testing.T) {

@@ -183,6 +183,9 @@ func (p *Provider) CompletionStream(
 	params providers.CompletionParams,
 ) iter.Seq2[providers.ChatCompletionChunk, error] {
 	return func(yield func(providers.ChatCompletionChunk, error) bool) {
+		streamCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
 		contents, cfg := p.convertParams(params)
 		state, err := newStreamState(params.Model)
 		if err != nil {
@@ -190,7 +193,16 @@ func (p *Provider) CompletionStream(
 			return
 		}
 
-		for resp, err := range p.client.Models.GenerateContentStream(ctx, params.Model, contents, cfg) {
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+			return
+		}
+
+		for resp, err := range p.client.Models.GenerateContentStream(streamCtx, params.Model, contents, cfg) {
+			if ctxErr := streamCtx.Err(); ctxErr != nil {
+				yield(providers.ChatCompletionChunk{}, ctxErr)
+				return
+			}
 			if err != nil {
 				yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
 				return
@@ -207,6 +219,11 @@ func (p *Provider) CompletionStream(
 					return
 				}
 			}
+		}
+
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+			return
 		}
 
 		// Emit final chunk with finish reason and usage.

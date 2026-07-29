@@ -189,6 +189,9 @@ func (p *CompatibleProvider) Completion(
 func (p *CompatibleProvider) CompletionStream(ctx context.Context, params providers.CompletionParams,
 ) iter.Seq2[providers.ChatCompletionChunk, error] {
 	return func(yield func(providers.ChatCompletionChunk, error) bool) {
+		streamCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
 		if err := validateCompletionParams(params); err != nil {
 			yield(providers.ChatCompletionChunk{}, err)
 			return
@@ -198,10 +201,16 @@ func (p *CompatibleProvider) CompletionStream(ctx context.Context, params provid
 		if p.compatibleConfig.ChatCompletionRequestTransform != nil {
 			p.compatibleConfig.ChatCompletionRequestTransform(&req)
 		}
-		stream := p.client.Chat.Completions.NewStreaming(ctx, req)
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+			return
+		}
+
+		stream := p.client.Chat.Completions.NewStreaming(streamCtx, req)
+		defer func() { _ = stream.Close() }()
 
 		for stream.Next() {
-			if err := ctx.Err(); err != nil {
+			if err := streamCtx.Err(); err != nil {
 				yield(providers.ChatCompletionChunk{}, err)
 				return
 			}
@@ -211,10 +220,10 @@ func (p *CompatibleProvider) CompletionStream(ctx context.Context, params provid
 			}
 		}
 
-		if err := stream.Err(); err != nil {
-			yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
-		} else if err := ctx.Err(); err != nil {
+		if err := streamCtx.Err(); err != nil {
 			yield(providers.ChatCompletionChunk{}, err)
+		} else if err := stream.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
 		}
 	}
 }
