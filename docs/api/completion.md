@@ -8,8 +8,8 @@ The completion API is the primary way to interact with LLM providers.
 import (
     "context"
 
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 provider, err := openai.New()

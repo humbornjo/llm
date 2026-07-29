@@ -16,12 +16,12 @@ import (
 	"github.com/google/uuid"
 	anyllmplatform "github.com/mozilla-ai/any-llm-platform-client-go"
 
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/errors"
-	"github.com/mozilla-ai/any-llm-go/providers"
-	"github.com/mozilla-ai/any-llm-go/providers/anthropic"
-	"github.com/mozilla-ai/any-llm-go/providers/openai"
-	"github.com/mozilla-ai/any-llm-go/sdk"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/errors"
+	"github.com/humbornjo/llm/providers"
+	"github.com/humbornjo/llm/providers/anthropic"
+	"github.com/humbornjo/llm/providers/openai"
+	"github.com/humbornjo/llm/sdk"
 )
 
 // Provider configuration constants.

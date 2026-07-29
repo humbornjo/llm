@@ -23,8 +23,8 @@ import (
 	"log"
 	"time"
 
-	anyllm "github.com/mozilla-ai/any-llm-go"
-	"github.com/mozilla-ai/any-llm-go/providers/llamafile"
+	anyllm "github.com/humbornjo/llm"
+	"github.com/humbornjo/llm/providers/llamafile"
 )
 
 // Define real tools that the model can call.

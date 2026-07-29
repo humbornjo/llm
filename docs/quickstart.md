@@ -14,7 +14,7 @@ Get up and running with any-llm-go in minutes.
 Add any-llm-go to your project:
 
 ```bash
-go get github.com/mozilla-ai/any-llm-go
+go get github.com/humbornjo/llm
 ```
 
 ## Setting Up API Keys
@@ -36,8 +36,8 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 func main() {
@@ -84,8 +84,8 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 func main() {
@@ -186,9 +186,9 @@ One of the main benefits of any-llm-go is easy provider switching:
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/anthropic"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/anthropic"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 func tryProvider(providerName string, model string, messages []anyllm.Message) error {

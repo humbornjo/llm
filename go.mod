@@ -1,4 +1,4 @@
-module github.com/mozilla-ai/any-llm-go
+module github.com/humbornjo/llm
 
 go 1.26.0
 
