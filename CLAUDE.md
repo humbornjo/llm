@@ -37,7 +37,6 @@ any-llm-go/
 │   ├── types.go        # Core interfaces and shared types
 │   ├── anthropic/      # Anthropic Claude provider (reference implementation)
 │   ├── openai/         # OpenAI provider
-│   └── ollama/         # Ollama local provider
 ├── internal/testutil/  # Test utilities and fixtures
 └── docs/               # Documentation
 ```

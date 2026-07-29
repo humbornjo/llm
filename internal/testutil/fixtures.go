@@ -15,12 +15,9 @@ import (
 var ProviderModelMap = map[string]string{
 	"openai":     "gpt-4o-mini",
 	"anthropic":  "claude-3-5-haiku-latest",
-	"mistral":    "mistral-small-latest",
 	"gemini":     "gemini-2.5-flash",
 	"cohere":     "command-r",
 	"groq":       "llama-3.3-70b-versatile",
-	"ollama":     "llama3.2",
-	"llamafile":  "LLaMA_CPP",
 	"together":   "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
 	"perplexity": "llama-3.1-sonar-small-128k-online",
 	"deepseek":   "deepseek-chat",
@@ -28,7 +25,6 @@ var ProviderModelMap = map[string]string{
 	"xai":        "grok-beta",
 	"cerebras":   "llama3.1-8b",
 	"openrouter": "meta-llama/llama-3.1-8b-instruct",
-	"llamacpp":   "Qwen2.5-7B-Instruct",
 	"zai":        "glm-4.7-flash",
 }
 
@@ -37,9 +33,7 @@ var ProviderReasoningModelMap = map[string]string{
 	"openai":    "o1-mini",
 	"anthropic": "claude-sonnet-4-20250514",
 	"gemini":    "gemini-3-flash-preview",
-	"mistral":   "magistral-small-latest",
 	"deepseek":  "deepseek-reasoner",
-	"ollama":    "deepseek-r1",
 	"zai":       "glm-4.7-flash",
 }
 
@@ -47,21 +41,16 @@ var ProviderReasoningModelMap = map[string]string{
 var ProviderImageModelMap = map[string]string{
 	"anthropic": "claude-3-5-haiku-latest",
 	"gemini":    "gemini-2.5-flash",
-	"mistral":   "pixtral-small-latest",
-	"ollama":    "llava",
 	"openai":    "gpt-4o-mini",
 	"zai":       "glm-4.6v-flash",
 }
 
 // EmbeddingProviderModelMap maps providers to embedding models.
 var EmbeddingProviderModelMap = map[string]string{
-	"openai":    "text-embedding-3-small",
-	"gemini":    "gemini-embedding-001",
-	"cohere":    "embed-english-v3.0",
-	"mistral":   "mistral-embed",
-	"together":  "togethercomputer/m2-bert-80M-8k-retrieval",
-	"ollama":    "nomic-embed-text",
-	"llamafile": "LLaMA_CPP",
+	"openai":   "text-embedding-3-small",
+	"gemini":   "gemini-embedding-001",
+	"cohere":   "embed-english-v3.0",
+	"together": "togethercomputer/m2-bert-80M-8k-retrieval",
 }
 
 // ProviderClientConfig holds provider-specific configuration for tests.
@@ -71,11 +60,8 @@ var ProviderClientConfig = map[string][]config.Option{
 
 // LocalProviders are providers that run locally and don't need API keys.
 var LocalProviders = map[string]bool{
-	"ollama":    true,
-	"lmstudio":  true,
-	"llamacpp":  true,
-	"llamafile": true,
-	"vllm":      true,
+	"lmstudio": true,
+	"vllm":     true,
 }
 
 // providerEnvKeys maps provider names to their API key environment variable names.
@@ -88,7 +74,6 @@ var providerEnvKeys = map[string]string{
 	"gateway":    "GATEWAY_API_KEY",
 	"gemini":     "GEMINI_API_KEY",
 	"groq":       "GROQ_API_KEY",
-	"mistral":    "MISTRAL_API_KEY",
 	"openai":     "OPENAI_API_KEY",
 	"openrouter": "OPENROUTER_API_KEY",
 	"perplexity": "PERPLEXITY_API_KEY",
