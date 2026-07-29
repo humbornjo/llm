@@ -396,20 +396,14 @@ func TestStreamingContextCancellation(t *testing.T) {
 			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
 		}
 
-		chunks, errs := provider.CompletionStream(ctx, params)
-
-		// Drain channels.
-		for range chunks {
+		for range provider.CompletionStream(ctx, params) {
 		}
-		<-errs
 
 		// Test passes if it doesn't hang.
 	})
 
-	// Regression for #85: when the caller cancels the context, the consumer
-	// reading from `errs` should receive `context.Canceled` (not a closed
-	// channel with no value) so it can distinguish "stream finished cleanly"
-	// from "I cancelled the request".
+	// Regression for #85: context cancellation must be yielded explicitly so
+	// consumers can distinguish it from a clean end of iteration.
 	t.Run("surfaces ctx.Err on cancellation", func(t *testing.T) {
 		t.Parallel()
 
@@ -437,23 +431,15 @@ func TestStreamingContextCancellation(t *testing.T) {
 			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
 		}
 
-		chunks, errs := provider.CompletionStream(ctx, params)
-
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			cancel()
 		}()
 
-		// Drain chunks until the channel closes.
-		for range chunks {
+		var got error
+		for _, streamErr := range provider.CompletionStream(ctx, params) {
+			got = streamErr
 		}
-
-		select {
-		case got, ok := <-errs:
-			require.True(t, ok, "errs should yield a value before close")
-			require.ErrorIs(t, got, context.Canceled)
-		case <-time.After(2 * time.Second):
-			t.Fatal("expected an error on errs after cancellation, got nothing")
-		}
+		require.ErrorIs(t, got, context.Canceled)
 	})
 }

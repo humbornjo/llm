@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
+	"iter"
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -224,17 +225,11 @@ func (p *Provider) convertParams(params providers.CompletionParams) (anthropic.M
 func (p *Provider) CompletionStream(
 	ctx context.Context,
 	params providers.CompletionParams,
-) (<-chan providers.ChatCompletionChunk, <-chan error) {
-	chunks := make(chan providers.ChatCompletionChunk)
-	errs := make(chan error, 1)
-
-	go func() {
-		defer close(chunks)
-		defer close(errs)
-
+) iter.Seq2[providers.ChatCompletionChunk, error] {
+	return func(yield func(providers.ChatCompletionChunk, error) bool) {
 		req, err := p.convertParams(params)
 		if err != nil {
-			errs <- err
+			yield(providers.ChatCompletionChunk{}, err)
 			return
 		}
 
@@ -246,27 +241,31 @@ func (p *Provider) CompletionStream(
 
 			switch event.Type {
 			case eventMessageStart:
-				chunks <- state.handleMessageStart(event.AsMessageStart())
+				if !yield(state.handleMessageStart(event.AsMessageStart()), nil) {
+					return
+				}
 
 			case eventContentBlockStart:
 				state.handleContentBlockStart(event.AsContentBlockStart())
 
 			case eventContentBlockDelta:
 				if chunk := state.handleContentBlockDelta(event.AsContentBlockDelta()); chunk != nil {
-					chunks <- *chunk
+					if !yield(*chunk, nil) {
+						return
+					}
 				}
 
 			case eventMessageDelta:
-				chunks <- state.handleMessageDelta(event.AsMessageDelta())
+				if !yield(state.handleMessageDelta(event.AsMessageDelta()), nil) {
+					return
+				}
 			}
 		}
 
 		if err := stream.Err(); err != nil {
-			errs <- p.ConvertError(err)
+			yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
 		}
-	}()
-
-	return chunks, errs
+	}
 }
 
 // Name returns the provider name.

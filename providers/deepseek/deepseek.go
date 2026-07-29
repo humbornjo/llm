@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"slices"
 
 	oaisdk "github.com/openai/openai-go"
@@ -84,7 +85,7 @@ func (p *Provider) Completion(
 func (p *Provider) CompletionStream(
 	ctx context.Context,
 	params providers.CompletionParams,
-) (<-chan providers.ChatCompletionChunk, <-chan error) {
+) iter.Seq2[providers.ChatCompletionChunk, error] {
 	params = preprocessParams(params)
 	return p.CompatibleProvider.CompletionStream(ctx, params)
 }

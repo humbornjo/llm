@@ -27,7 +27,7 @@ func main() {
 	ctx := context.Background()
 
 	// Request a streaming completion.
-	chunks, errs := provider.CompletionStream(ctx, anyllm.CompletionParams{
+	chunks := provider.CompletionStream(ctx, anyllm.CompletionParams{
 		Model: "gpt-4o-mini",
 		Messages: []anyllm.Message{
 			{Role: anyllm.RoleUser, Content: "Write a short poem about programming in Go."},
@@ -39,7 +39,10 @@ func main() {
 	fmt.Println("---")
 
 	// Process chunks as they arrive.
-	for chunk := range chunks {
+	for chunk, err := range chunks {
+		if err != nil {
+			log.Fatal(err)
+		}
 		if len(chunk.Choices) > 0 {
 			content := chunk.Choices[0].Delta.Content
 			if content != "" {
@@ -49,11 +52,6 @@ func main() {
 	}
 
 	fmt.Println("\n---")
-
-	// Always check for errors after the stream completes.
-	if err := <-errs; err != nil {
-		log.Fatal(err)
-	}
 
 	fmt.Println("Stream completed successfully!")
 }

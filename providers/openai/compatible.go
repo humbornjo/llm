@@ -6,6 +6,7 @@ import (
 	"context"
 	stderrors "errors"
 	"fmt"
+	"iter"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -185,19 +186,11 @@ func (p *CompatibleProvider) Completion(
 }
 
 // CompletionStream performs a streaming chat completion request.
-func (p *CompatibleProvider) CompletionStream(
-	ctx context.Context,
-	params providers.CompletionParams,
-) (<-chan providers.ChatCompletionChunk, <-chan error) {
-	chunks := make(chan providers.ChatCompletionChunk)
-	errs := make(chan error, 1)
-
-	go func() {
-		defer close(chunks)
-		defer close(errs)
-
+func (p *CompatibleProvider) CompletionStream(ctx context.Context, params providers.CompletionParams,
+) iter.Seq2[providers.ChatCompletionChunk, error] {
+	return func(yield func(providers.ChatCompletionChunk, error) bool) {
 		if err := validateCompletionParams(params); err != nil {
-			errs <- err
+			yield(providers.ChatCompletionChunk{}, err)
 			return
 		}
 
@@ -208,25 +201,22 @@ func (p *CompatibleProvider) CompletionStream(
 		stream := p.client.Chat.Completions.NewStreaming(ctx, req)
 
 		for stream.Next() {
+			if err := ctx.Err(); err != nil {
+				yield(providers.ChatCompletionChunk{}, err)
+				return
+			}
 			chunk := stream.Current()
-			select {
-			case chunks <- convertChunk(&chunk):
-			case <-ctx.Done():
-				// Caller cancelled mid-stream; surface ctx.Err() so the
-				// consumer can tell a cancelled stream apart from one
-				// that completed cleanly, rather than seeing a bare
-				// nil on the error channel.
-				errs <- ctx.Err()
+			if !yield(convertChunk(&chunk), nil) {
 				return
 			}
 		}
 
 		if err := stream.Err(); err != nil {
-			errs <- p.ConvertError(err)
+			yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
+		} else if err := ctx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
 		}
-	}()
-
-	return chunks, errs
+	}
 }
 
 // ConvertError converts OpenAI-compatible errors to unified error types.

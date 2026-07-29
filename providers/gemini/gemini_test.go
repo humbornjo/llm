@@ -1502,21 +1502,19 @@ func TestIntegrationCompletionStream(t *testing.T) {
 		Stream:   true,
 	}
 
-	chunks, errs := provider.CompletionStream(ctx, params)
+	chunks := provider.CompletionStream(ctx, params)
 
 	var content strings.Builder
 	chunkCount := 0
 
-	for chunk := range chunks {
+	for chunk, streamErr := range chunks {
+		require.NoError(t, streamErr)
 		chunkCount++
 		require.Equal(t, objectChatCompletionChunk, chunk.Object)
 		if len(chunk.Choices) > 0 {
 			content.WriteString(chunk.Choices[0].Delta.Content)
 		}
 	}
-
-	err = <-errs
-	require.NoError(t, err)
 
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
