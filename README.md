@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# any-llm (Go)
+# llm
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/humbornjo/llm.svg)](https://pkg.go.dev/github.com/humbornjo/llm)
 [![Go Report Card](https://goreportcard.com/badge/github.com/humbornjo/llm)](https://goreportcard.com/report/github.com/humbornjo/llm)
@@ -46,7 +46,7 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 
@@ -58,10 +58,10 @@ func main() {
         log.Fatal(err)
     }
 
-    response, err := provider.Completion(ctx, anyllm.CompletionParams{
+    response, err := provider.Completion(ctx, llm.CompletionParams{
         Model: "gpt-4o-mini",
-        Messages: []anyllm.Message{
-            {Role: anyllm.RoleUser, Content: "Hello!"},
+        Messages: []llm.Message{
+            {Role: llm.ROLE_USER, Content: "Hello!"},
         },
     })
     if err != nil {
@@ -85,7 +85,7 @@ Import the main package and the providers you need:
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"    // OpenAI
     "github.com/humbornjo/llm/providers/anthropic" // Anthropic
 )
@@ -107,7 +107,7 @@ export MISTRAL_API_KEY="your-key-here"
 Alternatively, pass API keys directly in your code:
 
 ```go
-provider, err := openai.New(anyllm.WithAPIKey("your-key-here"))
+provider, err := openai.New(llm.WithAPIKey("your-key-here"))
 ```
 
 ## any-llm-gateway
@@ -147,21 +147,21 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 
-provider, err := openai.New(anyllm.WithAPIKey("your-api-key"))
+provider, err := openai.New(llm.WithAPIKey("your-api-key"))
 if err != nil {
     log.Fatal(err)
 }
 
 ctx := context.Background()
 
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Hello!"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Hello!"},
     },
 })
 if err != nil {
@@ -176,10 +176,10 @@ Provider instances are reusable and recommended for production applications.
 ### Streaming
 
 ```go
-chunks, errs := provider.CompletionStream(ctx, anyllm.CompletionParams{
+chunks, errs := provider.CompletionStream(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Write a short poem about Go."},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Write a short poem about Go."},
     },
 })
 
@@ -197,15 +197,15 @@ if err := <-errs; err != nil {
 ### Tools / Function Calling
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "What's the weather in Paris?"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "What's the weather in Paris?"},
     },
-    Tools: []anyllm.ToolInfo{
+    Tools: []llm.ToolInfo{
         {
             Type: "function",
-            Function: anyllm.Function{
+            Function: llm.Function{
                 Name:        "get_weather",
                 Description: "Get the current weather for a location",
                 Parameters: map[string]any{
@@ -243,12 +243,12 @@ zero-value `ToolConfig` before execution.
 For models that support extended thinking (like Claude):
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "claude-sonnet-4-20250514",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Solve this step by step: What is 15% of 80?"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Solve this step by step: What is 15% of 80?"},
     },
-    ReasoningEffort: anyllm.ReasoningEffortMedium,
+    ReasoningEffort: llm.REASONING_EFFORT_MEDIUM,
 })
 
 if response.Choices[0].Message.Reasoning != nil {
@@ -261,7 +261,7 @@ fmt.Println("Answer:", response.Choices[0].Message.Content)
 
 ```go
 provider, _ := openai.New()
-result, err := provider.Embedding(ctx, anyllm.EmbeddingParams{
+result, err := provider.Embedding(ctx, llm.EmbeddingParams{
     Model: "text-embedding-3-small",
     Input: "Hello world",
 })
@@ -280,14 +280,14 @@ for _, model := range models.Data {
 ### Moderation
 
 The gateway provider supports OpenAI-compatible content moderation. Use
-`errors.As` with `*anyllm.UnsupportedOperationError` (or `errors.Is` with
-`anyllm.ErrUnsupported`) to detect providers that do not support moderation.
+`errors.As` with `*llm.UnsupportedOperationError` (or `errors.Is` with
+`llm.ErrUnsupported`) to detect providers that do not support moderation.
 
 ```go
 import (
     stderrors "errors"
 
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/config"
     "github.com/humbornjo/llm/providers/gateway"
 )
@@ -297,12 +297,12 @@ if err != nil {
     log.Fatal(err)
 }
 
-resp, err := provider.Moderation(ctx, anyllm.ModerationParams{
+resp, err := provider.Moderation(ctx, llm.ModerationParams{
     Model: "openai:omni-moderation-latest",
     Input: "I want to hurt someone",
 })
 if err != nil {
-    var unsup *anyllm.UnsupportedOperationError
+    var unsup *llm.UnsupportedOperationError
     if stderrors.As(err, &unsup) {
         // Provider does not support moderation; pick another model.
         log.Printf("%s cannot do %s", unsup.Provider, unsup.Operation)
@@ -323,11 +323,11 @@ All provider errors are normalized to common error types:
 response, err := provider.Completion(ctx, params)
 if err != nil {
     switch {
-    case errors.Is(err, anyllm.ErrRateLimit):
+    case errors.Is(err, llm.ErrRateLimit):
         // Handle rate limiting - maybe retry with backoff.
-    case errors.Is(err, anyllm.ErrAuthentication):
+    case errors.Is(err, llm.ErrAuthentication):
         // Handle auth errors - check API key.
-    case errors.Is(err, anyllm.ErrContextLength):
+    case errors.Is(err, llm.ErrContextLength):
         // Handle context too long - reduce input.
     default:
         // Handle other errors.
@@ -338,7 +338,7 @@ if err != nil {
 You can also use type assertions for more details:
 
 ```go
-var rateLimitErr *anyllm.RateLimitError
+var rateLimitErr *llm.RateLimitError
 if errors.As(err, &rateLimitErr) {
     fmt.Printf("Rate limited by %s: %s\n", rateLimitErr.Provider, rateLimitErr.Message)
 }
@@ -359,7 +359,7 @@ if errors.As(err, &rateLimitErr) {
 |   OpenAI   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
 |    z.ai    |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
 
-## Why choose `any-llm-go`?
+## Why choose `llm`?
 
 - **Simple, unified interface** - Same types and patterns across all providers, switch models with just a string change
 - **Developer friendly** - Full type definitions for better IDE support and clear, actionable error messages

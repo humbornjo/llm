@@ -1,4 +1,4 @@
-// Package testutil provides testing utilities and fixtures for any-llm.
+// Package testutil provides testing utilities and fixtures for llm.
 package testutil
 
 import (

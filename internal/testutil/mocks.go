@@ -44,10 +44,10 @@ func NewMockProvider() *MockProvider {
 					{
 						Index: 0,
 						Message: providers.Message{
-							Role:    providers.RoleAssistant,
-							Content: "Hello World",
+							Role:    providers.ROLE_ASSISTANT,
+							Content: providers.ContentFromString("Hello World"),
 						},
-						FinishReason: providers.FinishReasonStop,
+						FinishReason: providers.FINISH_REASON_STOP,
 					},
 				},
 				Usage: &providers.Usage{
@@ -65,7 +65,7 @@ func NewMockProvider() *MockProvider {
 						Object: "chat.completion.chunk",
 						Model:  params.Model,
 						Choices: []providers.ChunkChoice{
-							{Index: 0, Delta: providers.ChunkDelta{Role: providers.RoleAssistant}},
+							{Index: 0, Delta: providers.ChunkDelta{Role: providers.ROLE_ASSISTANT}},
 						},
 					},
 					{
@@ -81,7 +81,7 @@ func NewMockProvider() *MockProvider {
 						Object: "chat.completion.chunk",
 						Model:  params.Model,
 						Choices: []providers.ChunkChoice{
-							{Index: 0, FinishReason: providers.FinishReasonStop},
+							{Index: 0, FinishReason: providers.FINISH_REASON_STOP},
 						},
 					},
 				}
@@ -181,10 +181,10 @@ func MockChatCompletion(content string) *providers.ChatCompletion {
 			{
 				Index: 0,
 				Message: providers.Message{
-					Role:    providers.RoleAssistant,
-					Content: content,
+					Role:    providers.ROLE_ASSISTANT,
+					Content: providers.ContentFromString(content),
 				},
-				FinishReason: providers.FinishReasonStop,
+				FinishReason: providers.FINISH_REASON_STOP,
 			},
 		},
 		Usage: &providers.Usage{
@@ -205,11 +205,11 @@ func MockChatCompletionWithToolCalls(toolCalls []providers.ToolCall) *providers.
 			{
 				Index: 0,
 				Message: providers.Message{
-					Role:      providers.RoleAssistant,
-					Content:   "",
+					Role:      providers.ROLE_ASSISTANT,
+					Content:   providers.ContentFromString(""),
 					ToolCalls: toolCalls,
 				},
-				FinishReason: providers.FinishReasonToolCalls,
+				FinishReason: providers.FINISH_REASON_TOOL_CALLS,
 			},
 		},
 		Usage: &providers.Usage{
@@ -230,13 +230,13 @@ func MockChatCompletionWithReasoning(content, reasoning string) *providers.ChatC
 			{
 				Index: 0,
 				Message: providers.Message{
-					Role:    providers.RoleAssistant,
-					Content: content,
+					Role:    providers.ROLE_ASSISTANT,
+					Content: providers.ContentFromString(content),
 					Reasoning: &providers.Reasoning{
 						Content: reasoning,
 					},
 				},
-				FinishReason: providers.FinishReasonStop,
+				FinishReason: providers.FINISH_REASON_STOP,
 			},
 		},
 		Usage: &providers.Usage{

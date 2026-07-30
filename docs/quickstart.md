@@ -1,6 +1,6 @@
 # Quickstart Guide
 
-Get up and running with any-llm-go in minutes.
+Get up and running with llm in minutes.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Get up and running with any-llm-go in minutes.
 
 ## Installation
 
-Add any-llm-go to your project:
+Add llm to your project:
 
 ```bash
 go get github.com/humbornjo/llm
@@ -36,7 +36,7 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 
@@ -50,10 +50,10 @@ func main() {
     ctx := context.Background()
 
     // Make a completion request.
-    response, err := provider.Completion(ctx, anyllm.CompletionParams{
+    response, err := provider.Completion(ctx, llm.CompletionParams{
         Model: "gpt-4o-mini",
-        Messages: []anyllm.Message{
-            {Role: anyllm.RoleUser, Content: "Say hello in three languages!"},
+        Messages: []llm.Message{
+            {Role: llm.ROLE_USER, Content: "Say hello in three languages!"},
         },
     })
     if err != nil {
@@ -69,7 +69,7 @@ func main() {
 If you prefer not to use environment variables:
 
 ```go
-provider, err := openai.New(anyllm.WithAPIKey("sk-your-api-key"))
+provider, err := openai.New(llm.WithAPIKey("sk-your-api-key"))
 ```
 
 ## Streaming Responses
@@ -84,7 +84,7 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 
@@ -96,10 +96,10 @@ func main() {
 
     ctx := context.Background()
 
-    chunks, errs := provider.CompletionStream(ctx, anyllm.CompletionParams{
+    chunks, errs := provider.CompletionStream(ctx, llm.CompletionParams{
         Model: "gpt-4o-mini",
-        Messages: []anyllm.Message{
-            {Role: anyllm.RoleUser, Content: "Write a haiku about programming."},
+        Messages: []llm.Message{
+            {Role: llm.ROLE_USER, Content: "Write a haiku about programming."},
         },
         Stream: true,
     })
@@ -124,11 +124,11 @@ func main() {
 Guide the model's behavior with system messages:
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleSystem, Content: "You are a helpful assistant that speaks like a pirate."},
-        {Role: anyllm.RoleUser, Content: "How do I make coffee?"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_SYSTEM, Content: "You are a helpful assistant that speaks like a pirate."},
+        {Role: llm.ROLE_USER, Content: "How do I make coffee?"},
     },
 })
 ```
@@ -141,10 +141,10 @@ Control the model's output:
 temp := 0.7
 maxTokens := 500
 
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Write a creative story."},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Write a creative story."},
     },
     Temperature: &temp,
     MaxTokens:   &maxTokens,
@@ -162,15 +162,15 @@ import "errors"
 response, err := provider.Completion(ctx, params)
 if err != nil {
     // Check for specific error types.
-    if errors.Is(err, anyllm.ErrRateLimit) {
+    if errors.Is(err, llm.ErrRateLimit) {
         fmt.Println("Rate limited - please retry later")
         return
     }
-    if errors.Is(err, anyllm.ErrAuthentication) {
+    if errors.Is(err, llm.ErrAuthentication) {
         fmt.Println("Invalid API key")
         return
     }
-    if errors.Is(err, anyllm.ErrContextLength) {
+    if errors.Is(err, llm.ErrContextLength) {
         fmt.Println("Input too long - please reduce message size")
         return
     }
@@ -182,17 +182,17 @@ if err != nil {
 
 ## Switching Providers
 
-One of the main benefits of any-llm-go is easy provider switching:
+One of the main benefits of llm is easy provider switching:
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/anthropic"
     "github.com/humbornjo/llm/providers/openai"
 )
 
-func tryProvider(providerName string, model string, messages []anyllm.Message) error {
-    var provider anyllm.Provider
+func tryProvider(providerName string, model string, messages []llm.Message) error {
+    var provider llm.Provider
     var err error
 
     switch providerName {
@@ -205,7 +205,7 @@ func tryProvider(providerName string, model string, messages []anyllm.Message) e
         return err
     }
 
-    response, err := provider.Completion(ctx, anyllm.CompletionParams{
+    response, err := provider.Completion(ctx, llm.CompletionParams{
         Model:    model,
         Messages: messages,
     })

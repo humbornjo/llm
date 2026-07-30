@@ -1,6 +1,6 @@
 // Example: Tool/Function calling
 //
-// This example demonstrates how to use tools (function calling) with any-llm-go.
+// This example demonstrates how to use tools (function calling) with llm.
 //
 // Run with:
 //
@@ -14,15 +14,15 @@ import (
 	"fmt"
 	"log"
 
-	anyllm "github.com/humbornjo/llm"
+	"github.com/humbornjo/llm"
 	"github.com/humbornjo/llm/providers/openai"
 )
 
 // Define tools that the model can call.
-var tools = []anyllm.ToolInfo{
+var tools = []llm.ToolInfo{
 	{
 		Type: "function",
-		Function: anyllm.Function{
+		Function: llm.Function{
 			Name:        "get_weather",
 			Description: "Get the current weather for a location",
 			Parameters: map[string]any{
@@ -62,15 +62,15 @@ func main() {
 	ctx := context.Background()
 
 	// Initial message asking about weather.
-	messages := []anyllm.Message{
-		{Role: anyllm.RoleUser, Content: "What's the weather like in Paris?"},
+	messages := []llm.Message{
+		{Role: llm.ROLE_USER, Content: llm.ContentFromString("What's the weather like in Paris?")},
 	}
 
 	fmt.Println("User: What's the weather like in Paris?")
 	fmt.Println()
 
 	// First request - model may call the tool.
-	response, err := provider.Completion(ctx, anyllm.CompletionParams{
+	response, err := provider.Completion(ctx, llm.CompletionParams{
 		Model:      "gpt-4o-mini",
 		Messages:   messages,
 		Tools:      tools,
@@ -81,7 +81,7 @@ func main() {
 	}
 
 	// Check if the model wants to call a tool.
-	if response.Choices[0].FinishReason == anyllm.FinishReasonToolCalls {
+	if response.Choices[0].FinishReason == llm.FINISH_REASON_TOOL_CALLS {
 		fmt.Println("Model is calling tools...")
 
 		// Add the assistant's message (with tool calls) to the conversation.
@@ -107,15 +107,15 @@ func main() {
 			fmt.Println()
 
 			// Add the tool result to the conversation.
-			messages = append(messages, anyllm.Message{
-				Role:       anyllm.RoleTool,
-				Content:    result,
+			messages = append(messages, llm.Message{
+				Role:       llm.ROLE_TOOL,
+				Content:    llm.ContentFromString(result),
 				ToolCallID: tc.ID,
 			})
 		}
 
 		// Continue the conversation with the tool results.
-		response, err = provider.Completion(ctx, anyllm.CompletionParams{
+		response, err = provider.Completion(ctx, llm.CompletionParams{
 			Model:    "gpt-4o-mini",
 			Messages: messages,
 			Tools:    tools,

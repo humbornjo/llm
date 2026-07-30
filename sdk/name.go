@@ -1,4 +1,4 @@
 package sdk
 
-// Name is the library product name shared across all any-llm SDKs.
-const Name = "any-llm"
+// NAME is the library product name shared for the llm module.
+const NAME = "llm"

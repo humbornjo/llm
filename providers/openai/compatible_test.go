@@ -14,7 +14,7 @@ import (
 	"github.com/humbornjo/llm/providers"
 )
 
-func TestNewCompatible(t *testing.T) {
+func TestOpenAI_NewCompatible(t *testing.T) {
 	// Note: Not using t.Parallel() here because child test uses t.Setenv.
 
 	t.Run("creates provider with valid config", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestNewCompatible(t *testing.T) {
 	})
 }
 
-func TestNewCompatibleRequireBaseURL(t *testing.T) {
+func TestOpenAI_NewCompatibleRequireBaseURL(t *testing.T) {
 	// Note: Not using t.Parallel() because subtests use t.Setenv.
 
 	const (
@@ -192,7 +192,7 @@ func TestNewCompatibleRequireBaseURL(t *testing.T) {
 	}
 }
 
-func TestCompatibleProviderCapabilities(t *testing.T) {
+func TestOpenAI_CompatibleProviderCapabilities(t *testing.T) {
 	t.Parallel()
 
 	expectedCaps := providers.Capabilities{
@@ -213,14 +213,14 @@ func TestCompatibleProviderCapabilities(t *testing.T) {
 	require.Equal(t, expectedCaps, caps)
 }
 
-func TestValidateCompletionParams(t *testing.T) {
+func TestOpenAI_ValidateCompletionParams(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns error when model is empty", func(t *testing.T) {
 		t.Parallel()
 
 		params := providers.CompletionParams{
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 		}
 
 		err := validateCompletionParams(params)
@@ -247,7 +247,7 @@ func TestValidateCompletionParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model: "gpt-4",
 			Messages: []providers.Message{
-				{Role: "unknown_role", Content: "Hello"},
+				{Role: "unknown_role", Content: providers.ContentFromString("Hello")},
 			},
 		}
 
@@ -262,7 +262,7 @@ func TestValidateCompletionParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model: "gpt-4",
 			Messages: []providers.Message{
-				{Role: providers.RoleUser, Content: "Hello"},
+				{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 			},
 		}
 
@@ -271,7 +271,7 @@ func TestValidateCompletionParams(t *testing.T) {
 	})
 }
 
-func TestConvertResponseFormat(t *testing.T) {
+func TestOpenAI_ConvertResponseFormat(t *testing.T) {
 	t.Parallel()
 
 	t.Run("handles nil format", func(t *testing.T) {
@@ -284,7 +284,7 @@ func TestConvertResponseFormat(t *testing.T) {
 	t.Run("converts json_object format", func(t *testing.T) {
 		t.Parallel()
 
-		format := &providers.ResponseFormat{Type: responseFormatJSONObject}
+		format := &providers.ResponseFormat{Type: _RESPONSE_FORMAT_JSON_OBJECT}
 		result := convertResponseFormat(format)
 		require.NotNil(t, result.OfJSONObject)
 	})
@@ -294,7 +294,7 @@ func TestConvertResponseFormat(t *testing.T) {
 
 		strict := true
 		format := &providers.ResponseFormat{
-			Type: responseFormatJSONSchema,
+			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 			JSONSchema: &providers.JSONSchema{
 				Name:        "test_schema",
 				Description: "Test schema",
@@ -315,7 +315,7 @@ func TestConvertResponseFormat(t *testing.T) {
 	})
 }
 
-func TestConvertEmbeddingParams(t *testing.T) {
+func TestOpenAI_ConvertEmbeddingParams(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts string input", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestConvertEmbeddingParams(t *testing.T) {
 	})
 }
 
-func TestStreamingContextCancellation(t *testing.T) {
+func TestOpenAI_StreamingContextCancellation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("respects context cancellation", func(t *testing.T) {
@@ -393,7 +393,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 
 		params := providers.CompletionParams{
 			Model:    "test-model",
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 		}
 
 		var got error
@@ -418,7 +418,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		var got error
 		for _, streamErr := range provider.CompletionStream(ctx, providers.CompletionParams{
 			Model:    "test-model",
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 		}) {
 			got = streamErr
 		}
@@ -451,7 +451,7 @@ func TestStreamingContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		params := providers.CompletionParams{
 			Model:    "test-model",
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 		}
 
 		go func() {
@@ -480,10 +480,10 @@ func TestStreamingContextCancellation(t *testing.T) {
 	})
 }
 
-func TestCompletionStreamLifecycle(t *testing.T) {
+func TestOpenAI_CompletionStreamLifecycle(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:    "test-model",
-		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 
 	t.Run("starts lazily", func(t *testing.T) {
@@ -523,9 +523,9 @@ func TestCompletionStreamLifecycle(t *testing.T) {
 		requestDone := make(chan struct{})
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/event-stream")
-			_, _ = w.Write([]byte(`data: {"id":"chunk","object":"chat.completion.chunk","model":"test-model","choices":[{"index":0,"delta":{"content":"hello"}}]}
-
-`))
+			_, _ = w.Write(
+				[]byte("data: {\"id\":\"chunk\",\"object\":\"chat.completion.chunk\",\"model\":\"test-model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hello\"}}]}\n\n"),
+			)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}

@@ -8,7 +8,7 @@ The completion API is the primary way to interact with LLM providers.
 import (
     "context"
 
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 
@@ -19,10 +19,10 @@ if err != nil {
 
 ctx := context.Background()
 
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Hello!"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Hello!"},
     },
 })
 ```
@@ -51,11 +51,11 @@ Performs a chat completion request.
 **Example:**
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "claude-3-5-haiku-latest",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleSystem, Content: "You are a helpful assistant."},
-        {Role: anyllm.RoleUser, Content: "What is Go?"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_SYSTEM, Content: "You are a helpful assistant."},
+        {Role: llm.ROLE_USER, Content: "What is Go?"},
     },
 })
 if err != nil {
@@ -135,10 +135,10 @@ type Message struct {
 
 ```go
 const (
-    RoleSystem    = "system"
-    RoleUser      = "user"
-    RoleAssistant = "assistant"
-    RoleTool      = "tool"
+    ROLE_SYSTEM    = "system"
+    ROLE_USER      = "user"
+    ROLE_ASSISTANT = "assistant"
+    ROLE_TOOL      = "tool"
 )
 ```
 
@@ -147,11 +147,11 @@ const (
 For messages with images or other content types:
 
 ```go
-message := anyllm.Message{
-    Role: anyllm.RoleUser,
-    Content: []anyllm.ContentPart{
+message := llm.Message{
+    Role: llm.ROLE_USER,
+    Content: []llm.ContentPart{
         {Type: "text", Text: "What's in this image?"},
-        {Type: "image_url", ImageURL: &anyllm.ImageURL{
+        {Type: "image_url", ImageURL: &llm.ImageURL{
             URL: "https://example.com/image.jpg",
         }},
     },
@@ -188,10 +188,10 @@ type Choice struct {
 
 ```go
 const (
-    FinishReasonStop          = "stop"
-    FinishReasonLength        = "length"
-    FinishReasonToolCalls     = "tool_calls"
-    FinishReasonContentFilter = "content_filter"
+    FINISH_REASON_STOP          = "stop"
+    FINISH_REASON_LENGTH        = "length"
+    FINISH_REASON_TOOL_CALLS     = "tool_calls"
+    FINISH_REASON_CONTENT_FILTER = "content_filter"
 )
 ```
 
@@ -206,10 +206,10 @@ execution-specific metadata is carried by `ToolOption`.
 ### Defining Tools
 
 ```go
-tools := []anyllm.ToolInfo{
+tools := []llm.ToolInfo{
     {
         Type: "function",
-        Function: anyllm.Function{
+        Function: llm.Function{
             Name:        "get_weather",
             Description: "Get the current weather for a location",
             Parameters: map[string]any{
@@ -230,28 +230,28 @@ tools := []anyllm.ToolInfo{
 ### Processing Tool Calls
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model:    "gpt-4o-mini",
     Messages: messages,
     Tools:    tools,
 })
 
-if response.Choices[0].FinishReason == anyllm.FinishReasonToolCalls {
+if response.Choices[0].FinishReason == llm.FINISH_REASON_TOOL_CALLS {
     for _, tc := range response.Choices[0].Message.ToolCalls {
         // Process tool call.
         result := executeFunction(tc.Function.Name, tc.Function.Arguments)
 
         // Add tool result to messages.
         messages = append(messages, response.Choices[0].Message)
-        messages = append(messages, anyllm.Message{
-            Role:       anyllm.RoleTool,
+        messages = append(messages, llm.Message{
+            Role:       llm.ROLE_TOOL,
             Content:    result,
             ToolCallID: tc.ID,
         })
     }
 
     // Continue conversation with tool results.
-    response, err = provider.Completion(ctx, anyllm.CompletionParams{
+    response, err = provider.Completion(ctx, llm.CompletionParams{
         Model:    "gpt-4o-mini",
         Messages: messages,
         Tools:    tools,

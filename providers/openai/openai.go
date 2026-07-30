@@ -7,9 +7,9 @@ import (
 
 // Provider configuration constants.
 const (
-	defaultBaseURL = "https://api.openai.com/v1"
-	envAPIKey      = "OPENAI_API_KEY"
-	providerName   = "openai"
+	_DEFAULT_BASE_URL = "https://api.openai.com/v1"
+	_ENV_API_KEY      = "OPENAI_API_KEY"
+	_PROVIDER_NAME    = "openai"
 )
 
 // Ensure Provider implements the required interfaces.
@@ -30,10 +30,10 @@ type Provider struct {
 // New creates a new OpenAI provider.
 func New(opts ...config.Option) (*Provider, error) {
 	base, err := NewCompatible(CompatibleConfig{
-		APIKeyEnvVar:   envAPIKey,
+		APIKeyEnvVar:   _ENV_API_KEY,
 		Capabilities:   capabilities(),
-		DefaultBaseURL: defaultBaseURL,
-		Name:           providerName,
+		DefaultBaseURL: _DEFAULT_BASE_URL,
+		Name:           _PROVIDER_NAME,
 		RequireAPIKey:  true,
 	}, opts...)
 	if err != nil {

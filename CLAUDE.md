@@ -4,11 +4,14 @@ Guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-any-llm-go is the official Go port of [any-llm](https://github.com/mozilla-ai/any-llm). It provides a unified interface for multiple LLM providers, normalizing responses to OpenAI's format.
+llm is an independent downstream fork of [any-llm-go](https://github.com/mozilla-ai/any-llm-go). It provides a unified interface for multiple LLM providers, normalizing responses to OpenAI's format.
 
 ## Go Guidelines
 
-Follow [Go Proverbs](https://go-proverbs.github.io/) and [Effective Go](https://go.dev/doc/effective_go).
+Follow [`STYLE.md`](STYLE.md). It is the authoritative repository-specific
+guide and adapts Fuss's pragmatic Go style for this library.
+
+Also follow [Go Proverbs](https://go-proverbs.github.io/) and [Effective Go](https://go.dev/doc/effective_go).
 
 Style preferences:
 - Flat control flow: early returns, avoid deep nesting
@@ -29,8 +32,8 @@ make build      # Verify compilation
 ## Project Structure
 
 ```
-any-llm-go/
-├── anyllm.go           # Root package - re-exports types for simple imports
+llm/
+├── llm.go           # Root package - re-exports types for simple imports
 ├── config/config.go    # Functional options pattern for configuration
 ├── errors/errors.go    # Normalized error types with sentinel errors
 ├── providers/
@@ -47,7 +50,7 @@ any-llm-go/
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 ```

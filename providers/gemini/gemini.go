@@ -1,4 +1,4 @@
-// Package gemini provides a Google Gemini provider implementation for any-llm.
+// Package gemini provides a Google Gemini provider implementation for llm.
 package gemini
 
 import (
@@ -23,73 +23,73 @@ import (
 
 // Provider configuration constants.
 const (
-	envAPIKey       = "GEMINI_API_KEY"
-	envAPIKeyGoogle = "GOOGLE_API_KEY"
-	providerName    = "gemini"
+	_ENV_API_KEY        = "GEMINI_API_KEY"
+	_ENV_API_KEY_GOOGLE = "GOOGLE_API_KEY"
+	_PROVIDER_NAME      = "gemini"
 )
 
 // Default thinking budgets for reasoning effort levels.
 // These match the Python any-llm library.
 const (
-	thinkingBudgetHigh   int32 = 24576
-	thinkingBudgetLow    int32 = 1024
-	thinkingBudgetMedium int32 = 8192
+	_THINKING_BUDGET_HIGH   int32 = 24576
+	_THINKING_BUDGET_LOW    int32 = 1024
+	_THINKING_BUDGET_MEDIUM int32 = 8192
 )
 
 // Content part types.
 const (
-	contentPartTypeImageURL = "image_url"
-	contentPartTypeText     = "text"
+	_CONTENT_PART_TYPE_IMAGE_URL = "image_url"
+	_CONTENT_PART_TYPE_TEXT      = "text"
 )
 
 // Gemini role constants.
 const (
-	roleModel = "model"
-	roleUser  = "user"
+	_ROLE_MODEL = "model"
+	_ROLE_USER  = "user"
 )
 
 // Object type constants (Gemini doesn't provide these; we set them ourselves).
 const (
-	objectChatCompletion      = "chat.completion"
-	objectChatCompletionChunk = "chat.completion.chunk"
-	objectEmbedding           = "embedding"
-	objectList                = "list"
-	objectModel               = "model"
+	_OBJECT_CHAT_COMPLETION       = "chat.completion"
+	_OBJECT_CHAT_COMPLETION_CHUNK = "chat.completion.chunk"
+	_OBJECT_EMBEDDING             = "embedding"
+	_OBJECT_LIST                  = "list"
+	_OBJECT_MODEL                 = "model"
 )
 
 // Response format and tool type constants.
 const (
-	responseMIMETypeJSON     = "application/json"
-	responseFormatJSON       = "json_object"
-	responseFormatJSONSchema = "json_schema"
-	toolCallFallbackName     = "function"
-	toolCallType             = "function"
+	_RESPONSE_MIME_TYPE_JSON     = "application/json"
+	_RESPONSE_FORMAT_JSON        = "json_object"
+	_RESPONSE_FORMAT_JSON_SCHEMA = "json_schema"
+	_TOOL_CALL_FALLBACK_NAME     = "function"
+	_TOOL_CALL_TYPE              = "function"
 )
 
 // ID prefix constants for generated identifiers.
 const (
-	idPrefixCompletion = "gemini-"
-	idPrefixToolCall   = "call_"
+	_ID_PREFIX_COMPLETION = "gemini-"
+	_ID_PREFIX_TOOL_CALL  = "call_"
 )
 
 // Extra key for round-tripping ThoughtSignature metadata in ToolCall.Extra.
-const extraKeyThoughtSignature = "thought_signature"
+const _EXTRA_KEY_THOUGHT_SIGNATURE = "thought_signature"
 
 // Default MIME type for image URLs when type cannot be determined.
-const defaultImageMIMEType = "image/jpeg"
+const _DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
 // Bypass value for tool calls that lack a real ThoughtSignature.
 // See https://ai.google.dev/gemini-api/docs/thought-signatures#faqs
-const thoughtSignatureBypass = "skip_thought_signature_validator"
+const _THOUGHT_SIGNATURE_BYPASS = "skip_thought_signature_validator"
 
 // Error message patterns for 400 error classification.
 // The Gemini SDK doesn't expose typed errors for these conditions,
 // so we rely on message matching as a pragmatic fallback.
 const (
-	errMsgContext = "context"
-	errMsgToken   = "token"
-	errMsgSafety  = "safety"
-	errMsgBlock   = "block"
+	_ERR_MSG_CONTEXT = "context"
+	_ERR_MSG_TOKEN   = "token"
+	_ERR_MSG_SAFETY  = "safety"
+	_ERR_MSG_BLOCK   = "block"
 )
 
 // Ensure Provider implements the required interfaces.
@@ -125,12 +125,12 @@ func New(opts ...config.Option) (*Provider, error) {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
-	apiKey := cfg.ResolveAPIKey(envAPIKey)
+	apiKey := cfg.ResolveAPIKey(_ENV_API_KEY)
 	if apiKey == "" {
-		apiKey = cfg.ResolveEnv(envAPIKeyGoogle)
+		apiKey = cfg.ResolveEnv(_ENV_API_KEY_GOOGLE)
 	}
 	if apiKey == "" {
-		return nil, errors.NewMissingAPIKeyError(providerName, envAPIKey)
+		return nil, errors.NewMissingAPIKeyError(_PROVIDER_NAME, _ENV_API_KEY)
 	}
 
 	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
@@ -241,29 +241,29 @@ func (p *Provider) ConvertError(err error) error {
 
 	var apiErr *genai.APIError
 	if !stderrors.As(err, &apiErr) {
-		return errors.NewProviderError(providerName, err)
+		return errors.NewProviderError(_PROVIDER_NAME, err)
 	}
 
 	switch apiErr.Code {
 	case 401, 403:
-		return errors.NewAuthenticationError(providerName, err)
+		return errors.NewAuthenticationError(_PROVIDER_NAME, err)
 	case 404:
-		return errors.NewModelNotFoundError(providerName, err)
+		return errors.NewModelNotFoundError(_PROVIDER_NAME, err)
 	case 429:
-		return errors.NewRateLimitError(providerName, err)
+		return errors.NewRateLimitError(_PROVIDER_NAME, err)
 	case 400:
 		// The Gemini SDK doesn't expose typed errors for context length or content
 		// filter violations, so we use message matching as a pragmatic fallback.
 		msg := strings.ToLower(apiErr.Message)
-		if strings.Contains(msg, errMsgContext) || strings.Contains(msg, errMsgToken) {
-			return errors.NewContextLengthError(providerName, err)
+		if strings.Contains(msg, _ERR_MSG_CONTEXT) || strings.Contains(msg, _ERR_MSG_TOKEN) {
+			return errors.NewContextLengthError(_PROVIDER_NAME, err)
 		}
-		if strings.Contains(msg, errMsgSafety) || strings.Contains(msg, errMsgBlock) {
-			return errors.NewContentFilterError(providerName, err)
+		if strings.Contains(msg, _ERR_MSG_SAFETY) || strings.Contains(msg, _ERR_MSG_BLOCK) {
+			return errors.NewContentFilterError(_PROVIDER_NAME, err)
 		}
-		return errors.NewInvalidRequestError(providerName, err)
+		return errors.NewInvalidRequestError(_PROVIDER_NAME, err)
 	default:
-		return errors.NewProviderError(providerName, err)
+		return errors.NewProviderError(_PROVIDER_NAME, err)
 	}
 }
 
@@ -286,14 +286,14 @@ func (p *Provider) Embedding(
 			values[j] = float64(v)
 		}
 		data = append(data, providers.EmbeddingData{
-			Object:    objectEmbedding,
+			Object:    _OBJECT_EMBEDDING,
 			Embedding: values,
 			Index:     i,
 		})
 	}
 
 	return &providers.EmbeddingResponse{
-		Object: objectList,
+		Object: _OBJECT_LIST,
 		Data:   data,
 		Model:  params.Model,
 	}, nil
@@ -312,7 +312,7 @@ func (p *Provider) ListModels(ctx context.Context) (*providers.ModelsResponse, e
 		for _, m := range page.Items {
 			models = append(models, providers.Model{
 				ID:      m.Name,
-				Object:  objectModel,
+				Object:  _OBJECT_MODEL,
 				OwnedBy: "google",
 			})
 		}
@@ -331,14 +331,14 @@ func (p *Provider) ListModels(ctx context.Context) (*providers.ModelsResponse, e
 	}
 
 	return &providers.ModelsResponse{
-		Object: objectList,
+		Object: _OBJECT_LIST,
 		Data:   models,
 	}, nil
 }
 
 // Name returns the provider name.
 func (p *Provider) Name() string {
-	return providerName
+	return _PROVIDER_NAME
 }
 
 // convertParams converts providers.CompletionParams to Gemini request format.
@@ -388,7 +388,7 @@ func (p *Provider) convertParams(params providers.CompletionParams) ([]*genai.Co
 
 // newStreamState creates a new stream state.
 func newStreamState(model string) (*streamState, error) {
-	id, err := generateID(idPrefixCompletion)
+	id, err := generateID(_ID_PREFIX_COMPLETION)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +402,7 @@ func newStreamState(model string) (*streamState, error) {
 func (s *streamState) chunk(delta providers.ChunkDelta) providers.ChatCompletionChunk {
 	return providers.ChatCompletionChunk{
 		ID:     s.messageID,
-		Object: objectChatCompletionChunk,
+		Object: _OBJECT_CHAT_COMPLETION_CHUNK,
 		Model:  s.model,
 		Choices: []providers.ChunkChoice{{
 			Index: 0,
@@ -416,8 +416,8 @@ func (s *streamState) finalChunk() *providers.ChatCompletionChunk {
 	chunk := s.chunk(providers.ChunkDelta{})
 
 	finishReason := convertFinishReason(s.finishReason)
-	if len(s.toolCalls) > 0 && finishReason == providers.FinishReasonStop {
-		finishReason = providers.FinishReasonToolCalls
+	if len(s.toolCalls) > 0 && finishReason == providers.FINISH_REASON_STOP {
+		finishReason = providers.FINISH_REASON_TOOL_CALLS
 	}
 
 	chunk.Choices[0].FinishReason = finishReason
@@ -462,7 +462,7 @@ func (s *streamState) processResponse(resp *genai.GenerateContentResponse) ([]pr
 
 			// Preserve the thought signature so callers can echo it back on the next turn.
 			if len(part.ThoughtSignature) > 0 {
-				setProviderExtra(&toolCall, providerName, extraKeyThoughtSignature,
+				setProviderExtra(&toolCall, _PROVIDER_NAME, _EXTRA_KEY_THOUGHT_SIGNATURE,
 					base64.StdEncoding.EncodeToString(part.ThoughtSignature))
 			}
 			s.toolCalls = append(s.toolCalls, toolCall)
@@ -493,20 +493,20 @@ func applyResponseFormat(cfg *genai.GenerateContentConfig, format *providers.Res
 		return
 	}
 	switch format.Type {
-	case responseFormatJSONSchema:
+	case _RESPONSE_FORMAT_JSON_SCHEMA:
 		if format.JSONSchema == nil || format.JSONSchema.Schema == nil {
 			return
 		}
-		cfg.ResponseMIMEType = responseMIMETypeJSON
+		cfg.ResponseMIMEType = _RESPONSE_MIME_TYPE_JSON
 		cfg.ResponseJsonSchema = format.JSONSchema.Schema
-	case responseFormatJSON:
-		cfg.ResponseMIMEType = responseMIMETypeJSON
+	case _RESPONSE_FORMAT_JSON:
+		cfg.ResponseMIMEType = _RESPONSE_MIME_TYPE_JSON
 	}
 }
 
 // applyThinking configures thinking/reasoning on the config if applicable.
 func applyThinking(cfg *genai.GenerateContentConfig, effort providers.ReasoningEffort) {
-	if effort == "" || effort == providers.ReasoningEffortNone {
+	if effort == "" || effort == providers.REASONING_EFFORT_NONE {
 		return
 	}
 
@@ -559,7 +559,7 @@ func convertAssistantMessage(msg providers.Message) *genai.Content {
 		if sig := thoughtSignatureFromExtra(tc.Extra); sig != nil {
 			part.ThoughtSignature = sig
 		} else {
-			part.ThoughtSignature = []byte(thoughtSignatureBypass)
+			part.ThoughtSignature = []byte(_THOUGHT_SIGNATURE_BYPASS)
 		}
 
 		parts = append(parts, part)
@@ -570,7 +570,7 @@ func convertAssistantMessage(msg providers.Message) *genai.Content {
 	}
 
 	return &genai.Content{
-		Role:  roleModel,
+		Role:  _ROLE_MODEL,
 		Parts: parts,
 	}
 }
@@ -579,15 +579,15 @@ func convertAssistantMessage(msg providers.Message) *genai.Content {
 func convertEmbeddingInput(input any) *genai.Content {
 	switch v := input.(type) {
 	case string:
-		return genai.NewContentFromText(v, roleUser)
+		return genai.NewContentFromText(v, _ROLE_USER)
 	case []string:
 		parts := make([]*genai.Part, len(v))
 		for i, s := range v {
 			parts[i] = genai.NewPartFromText(s)
 		}
-		return genai.NewContentFromParts(parts, roleUser)
+		return genai.NewContentFromParts(parts, _ROLE_USER)
 	default:
-		return genai.NewContentFromText(fmt.Sprintf("%v", v), roleUser)
+		return genai.NewContentFromText(fmt.Sprintf("%v", v), _ROLE_USER)
 	}
 }
 
@@ -595,15 +595,15 @@ func convertEmbeddingInput(input any) *genai.Content {
 func convertFinishReason(reason genai.FinishReason) string {
 	switch reason {
 	case genai.FinishReasonStop:
-		return providers.FinishReasonStop
+		return providers.FINISH_REASON_STOP
 	case genai.FinishReasonMaxTokens:
-		return providers.FinishReasonLength
+		return providers.FINISH_REASON_LENGTH
 	case genai.FinishReasonSafety, genai.FinishReasonBlocklist, genai.FinishReasonProhibitedContent:
-		return providers.FinishReasonContentFilter
+		return providers.FINISH_REASON_CONTENT_FILTER
 	case genai.FinishReasonRecitation:
-		return providers.FinishReasonStop
+		return providers.FINISH_REASON_STOP
 	default:
-		return providers.FinishReasonStop
+		return providers.FINISH_REASON_STOP
 	}
 }
 
@@ -616,14 +616,14 @@ func convertFunctionCallToToolCall(fc *genai.FunctionCall) (providers.ToolCall, 
 		}
 	}
 
-	id, err := generateID(idPrefixToolCall)
+	id, err := generateID(_ID_PREFIX_TOOL_CALL)
 	if err != nil {
 		return providers.ToolCall{}, err
 	}
 
 	return providers.ToolCall{
 		ID:   id,
-		Type: toolCallType,
+		Type: _TOOL_CALL_TYPE,
 		Function: providers.FunctionCall{
 			Name:      fc.Name,
 			Arguments: argsJSON,
@@ -654,7 +654,7 @@ func convertImagePart(img *providers.ImageURL) *genai.Part {
 	return &genai.Part{
 		FileData: &genai.FileData{
 			FileURI:  url,
-			MIMEType: defaultImageMIMEType,
+			MIMEType: _DEFAULT_IMAGE_MIME_TYPE,
 		},
 	}
 }
@@ -663,11 +663,11 @@ func convertImagePart(img *providers.ImageURL) *genai.Part {
 // Returns nil for unknown roles (with a warning logged).
 func convertMessage(msg providers.Message) *genai.Content {
 	switch msg.Role {
-	case providers.RoleUser:
+	case providers.ROLE_USER:
 		return convertUserMessage(msg)
-	case providers.RoleAssistant:
+	case providers.ROLE_ASSISTANT:
 		return convertAssistantMessage(msg)
-	case providers.RoleTool:
+	case providers.ROLE_TOOL:
 		return convertToolMessage(msg)
 	default:
 		log.Printf("gemini: unknown message role %q, skipping message", msg.Role)
@@ -682,7 +682,7 @@ func convertMessages(messages []providers.Message) ([]*genai.Content, *genai.Con
 	var systemParts []string
 
 	for _, msg := range messages {
-		if msg.Role == providers.RoleSystem {
+		if msg.Role == providers.ROLE_SYSTEM {
 			systemParts = append(systemParts, msg.ContentString())
 			continue
 		}
@@ -694,7 +694,7 @@ func convertMessages(messages []providers.Message) ([]*genai.Content, *genai.Con
 
 	var systemInstruction *genai.Content
 	if len(systemParts) > 0 {
-		systemInstruction = genai.NewContentFromText(strings.Join(systemParts, "\n"), roleUser)
+		systemInstruction = genai.NewContentFromText(strings.Join(systemParts, "\n"), _ROLE_USER)
 	}
 
 	return contents, systemInstruction
@@ -729,7 +729,7 @@ func extractResponseContent(
 
 			// Preserve the thought signature so callers can echo it back on the next turn.
 			if len(part.ThoughtSignature) > 0 {
-				setProviderExtra(&toolCall, providerName, extraKeyThoughtSignature,
+				setProviderExtra(&toolCall, _PROVIDER_NAME, _EXTRA_KEY_THOUGHT_SIGNATURE,
 					base64.StdEncoding.EncodeToString(part.ThoughtSignature))
 			}
 			toolCalls = append(toolCalls, toolCall)
@@ -755,25 +755,25 @@ func convertResponse(resp *genai.GenerateContentResponse, model string) (*provid
 		return nil, err
 	}
 
-	if len(toolCalls) > 0 && finishReason == providers.FinishReasonStop {
-		finishReason = providers.FinishReasonToolCalls
+	if len(toolCalls) > 0 && finishReason == providers.FINISH_REASON_STOP {
+		finishReason = providers.FINISH_REASON_TOOL_CALLS
 	}
 
 	message := providers.Message{
-		Role:      providers.RoleAssistant,
-		Content:   content,
+		Role:      providers.ROLE_ASSISTANT,
+		Content:   providers.ContentFromString(content),
 		ToolCalls: toolCalls,
 		Reasoning: reasoning,
 	}
 
-	id, err := generateID(idPrefixCompletion)
+	id, err := generateID(_ID_PREFIX_COMPLETION)
 	if err != nil {
 		return nil, err
 	}
 
 	completion := &providers.ChatCompletion{
 		ID:      id,
-		Object:  objectChatCompletion,
+		Object:  _OBJECT_CHAT_COMPLETION,
 		Created: time.Now().Unix(),
 		Model:   model,
 		Choices: []providers.Choice{{
@@ -837,7 +837,7 @@ func convertToolChoice(choice any) *genai.ToolConfig {
 func convertToolMessage(msg providers.Message) *genai.Content {
 	name := msg.Name
 	if name == "" {
-		name = toolCallFallbackName
+		name = _TOOL_CALL_FALLBACK_NAME
 	}
 
 	content := msg.ContentString()
@@ -852,7 +852,7 @@ func convertToolMessage(msg providers.Message) *genai.Content {
 	}
 
 	return &genai.Content{
-		Role:  roleUser,
+		Role:  _ROLE_USER,
 		Parts: []*genai.Part{genai.NewPartFromFunctionResponse(name, response)},
 	}
 }
@@ -882,22 +882,22 @@ func convertTools(tools []providers.ToolInfo) []*genai.Tool {
 // convertUserMessage converts a user message to Gemini format.
 func convertUserMessage(msg providers.Message) *genai.Content {
 	if !msg.IsMultiModal() {
-		return genai.NewContentFromText(msg.ContentString(), roleUser)
+		return genai.NewContentFromText(msg.ContentString(), _ROLE_USER)
 	}
 
 	var parts []*genai.Part
 	for _, part := range msg.ContentParts() {
-		switch part.Type {
-		case contentPartTypeText:
+		switch part := part.(type) {
+		case *providers.ContentPartText:
 			parts = append(parts, genai.NewPartFromText(part.Text))
-		case contentPartTypeImageURL:
+		case *providers.ContentPartImage:
 			if part.ImageURL != nil {
 				parts = append(parts, convertImagePart(part.ImageURL))
 			}
 		}
 	}
 
-	return genai.NewContentFromParts(parts, roleUser)
+	return genai.NewContentFromParts(parts, _ROLE_USER)
 }
 
 // generateID generates a random ID with the given prefix.
@@ -929,12 +929,12 @@ func thoughtSignatureFromExtra(extra map[string]providers.ProviderData) []byte {
 		return nil
 	}
 
-	geminiData, ok := extra[providerName]
+	geminiData, ok := extra[_PROVIDER_NAME]
 	if !ok {
 		return nil
 	}
 
-	sigStr, ok := geminiData[extraKeyThoughtSignature].(string)
+	sigStr, ok := geminiData[_EXTRA_KEY_THOUGHT_SIGNATURE].(string)
 	if !ok {
 		return nil
 	}
@@ -950,12 +950,12 @@ func thoughtSignatureFromExtra(extra map[string]providers.ProviderData) []byte {
 // thinkingBudget returns the token budget for the given reasoning effort.
 func thinkingBudget(effort providers.ReasoningEffort) (int32, bool) {
 	switch effort {
-	case providers.ReasoningEffortLow:
-		return thinkingBudgetLow, true
-	case providers.ReasoningEffortMedium:
-		return thinkingBudgetMedium, true
-	case providers.ReasoningEffortHigh:
-		return thinkingBudgetHigh, true
+	case providers.REASONING_EFFORT_LOW:
+		return _THINKING_BUDGET_LOW, true
+	case providers.REASONING_EFFORT_MEDIUM:
+		return _THINKING_BUDGET_MEDIUM, true
+	case providers.REASONING_EFFORT_HIGH:
+		return _THINKING_BUDGET_HIGH, true
 	default:
 		return 0, false
 	}

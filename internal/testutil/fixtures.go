@@ -1,4 +1,4 @@
-// Package testutil provides testing utilities and fixtures for any-llm.
+// Package testutil provides testing utilities and fixtures for llm.
 package testutil
 
 import (
@@ -45,8 +45,8 @@ var ProviderImageModelMap = map[string]string{
 	"zai":       "glm-4.6v-flash",
 }
 
-// EmbeddingProviderModelMap maps providers to embedding models.
-var EmbeddingProviderModelMap = map[string]string{
+// EMBEDDING_ProviderModelMap maps providers to embedding models.
+var EMBEDDING_ProviderModelMap = map[string]string{
 	"openai":   "text-embedding-3-small",
 	"gemini":   "gemini-embedding-001",
 	"cohere":   "embed-english-v3.0",
@@ -85,41 +85,47 @@ var providerEnvKeys = map[string]string{
 // SimpleMessages returns a simple test message.
 func SimpleMessages() []providers.Message {
 	return []providers.Message{
-		{Role: providers.RoleUser, Content: "Say 'Hello World' exactly, nothing else."},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("Say 'Hello World' exactly, nothing else.")},
 	}
 }
 
 // MessagesWithSystem returns messages with a system prompt.
 func MessagesWithSystem() []providers.Message {
 	return []providers.Message{
-		{Role: providers.RoleSystem, Content: "You are a helpful assistant that follows instructions exactly."},
-		{Role: providers.RoleUser, Content: "Say 'Hello World' exactly, nothing else."},
+		{
+			Role:    providers.ROLE_SYSTEM,
+			Content: providers.ContentFromString("You are a helpful assistant that follows instructions exactly."),
+		},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("Say 'Hello World' exactly, nothing else."),
+		},
 	}
 }
 
 // ConversationMessages returns a multi-turn conversation.
 func ConversationMessages() []providers.Message {
 	return []providers.Message{
-		{Role: providers.RoleUser, Content: "My name is Alice."},
-		{Role: providers.RoleAssistant, Content: "Hello Alice! Nice to meet you."},
-		{Role: providers.RoleUser, Content: "What is my name?"},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("My name is Alice.")},
+		{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hello Alice! Nice to meet you.")},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is my name?")},
 	}
 }
 
 // ToolCallMessages returns messages for testing tool calls.
 func ToolCallMessages() []providers.Message {
 	return []providers.Message{
-		{Role: providers.RoleUser, Content: "What is the weather in Paris?"},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is the weather in Paris?")},
 	}
 }
 
 // AgentLoopMessages returns messages for testing agent loops.
 func AgentLoopMessages() []providers.Message {
 	return []providers.Message{
-		{Role: providers.RoleUser, Content: "What is the weather like in Salvaterra?"},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is the weather like in Salvaterra?")},
 		{
-			Role:    providers.RoleAssistant,
-			Content: "",
+			Role:    providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromString(""),
 			ToolCalls: []providers.ToolCall{
 				{
 					ID:   "call_123",
@@ -132,8 +138,8 @@ func AgentLoopMessages() []providers.Message {
 			},
 		},
 		{
-			Role:       providers.RoleTool,
-			Content:    "sunny, 22°C",
+			Role:       providers.ROLE_TOOL,
+			Content:    providers.ContentFromString("sunny, 22°C"),
 			ToolCallID: "call_123",
 		},
 	}
@@ -280,7 +286,7 @@ func ReasoningModel(provider string) string {
 
 // EmbeddingModel returns the embedding model for a provider.
 func EmbeddingModel(provider string) string {
-	if model, ok := EmbeddingProviderModelMap[provider]; ok {
+	if model, ok := EMBEDDING_ProviderModelMap[provider]; ok {
 		return model
 	}
 	return ""

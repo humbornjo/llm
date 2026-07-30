@@ -20,7 +20,7 @@ import (
 	"github.com/humbornjo/llm/providers"
 )
 
-func TestNew(t *testing.T) {
+func TestAnthropic_New(t *testing.T) {
 	t.Run("creates provider with API key", func(t *testing.T) {
 		provider, err := New(config.WithAPIKey("test-api-key"))
 		require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestCapabilities(t *testing.T) {
+func TestAnthropic_Capabilities(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("test-key"))
@@ -68,15 +68,15 @@ func TestCapabilities(t *testing.T) {
 	require.False(t, caps.ListModels)
 }
 
-func TestConvertMessages(t *testing.T) {
+func TestAnthropic_ConvertMessages(t *testing.T) {
 	t.Parallel()
 
 	t.Run("extracts system message", func(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleSystem, Content: "You are a helpful assistant."},
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("You are a helpful assistant.")},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		result, system := convertMessages(messages)
@@ -89,9 +89,9 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleSystem, Content: "First part."},
-			{Role: providers.RoleSystem, Content: "Second part."},
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("First part.")},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("Second part.")},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		result, system := convertMessages(messages)
@@ -104,7 +104,7 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		result, system := convertMessages(messages)
@@ -117,8 +117,8 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
-			{Role: providers.RoleAssistant, Content: "Hi there!"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
+			{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hi there!")},
 		}
 
 		result, system := convertMessages(messages)
@@ -131,10 +131,10 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "What's the weather?"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What's the weather?")},
 			{
-				Role:    providers.RoleAssistant,
-				Content: "",
+				Role:    providers.ROLE_ASSISTANT,
+				Content: providers.ContentFromString(""),
 				ToolCalls: []providers.ToolCall{
 					{
 						ID:   "call_123",
@@ -157,10 +157,10 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "What's the weather?"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What's the weather?")},
 			{
-				Role:    providers.RoleAssistant,
-				Content: "",
+				Role:    providers.ROLE_ASSISTANT,
+				Content: providers.ContentFromString(""),
 				ToolCalls: []providers.ToolCall{
 					{
 						ID:       "call_123",
@@ -169,7 +169,7 @@ func TestConvertMessages(t *testing.T) {
 					},
 				},
 			},
-			{Role: providers.RoleTool, Content: "sunny, 22°C", ToolCallID: "call_123"},
+			{Role: providers.ROLE_TOOL, Content: providers.ContentFromString("sunny, 22°C"), ToolCallID: "call_123"},
 		}
 
 		result, _ := convertMessages(messages)
@@ -178,7 +178,7 @@ func TestConvertMessages(t *testing.T) {
 	})
 }
 
-func TestConvertImagePart(t *testing.T) {
+func TestAnthropic_ConvertImagePart(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts URL image", func(t *testing.T) {
@@ -198,7 +198,7 @@ func TestConvertImagePart(t *testing.T) {
 	})
 }
 
-func TestConvertStopReason(t *testing.T) {
+func TestAnthropic_ConvertStopReason(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -209,27 +209,27 @@ func TestConvertStopReason(t *testing.T) {
 		{
 			name:     "end_turn",
 			input:    "end_turn",
-			expected: providers.FinishReasonStop,
+			expected: providers.FINISH_REASON_STOP,
 		},
 		{
 			name:     "max_tokens",
 			input:    "max_tokens",
-			expected: providers.FinishReasonLength,
+			expected: providers.FINISH_REASON_LENGTH,
 		},
 		{
 			name:     "tool_use",
 			input:    "tool_use",
-			expected: providers.FinishReasonToolCalls,
+			expected: providers.FINISH_REASON_TOOL_CALLS,
 		},
 		{
 			name:     "stop_sequence",
 			input:    "stop_sequence",
-			expected: providers.FinishReasonStop,
+			expected: providers.FINISH_REASON_STOP,
 		},
 		{
 			name:     "unknown",
 			input:    "unknown",
-			expected: providers.FinishReasonStop,
+			expected: providers.FINISH_REASON_STOP,
 		},
 	}
 
@@ -243,7 +243,7 @@ func TestConvertStopReason(t *testing.T) {
 	}
 }
 
-func TestNewStreamState(t *testing.T) {
+func TestAnthropic_NewStreamState(t *testing.T) {
 	t.Parallel()
 
 	state := newStreamState()
@@ -254,7 +254,7 @@ func TestNewStreamState(t *testing.T) {
 	require.Nil(t, state.toolCalls)
 }
 
-func TestStreamStateHandleTextDelta(t *testing.T) {
+func TestAnthropic_StreamStateHandleTextDelta(t *testing.T) {
 	t.Parallel()
 
 	state := newStreamState()
@@ -276,7 +276,7 @@ func TestStreamStateHandleTextDelta(t *testing.T) {
 	require.Equal(t, "Hello world!", state.content.String())
 }
 
-func TestStreamStateHandleThinkingDelta(t *testing.T) {
+func TestAnthropic_StreamStateHandleThinkingDelta(t *testing.T) {
 	t.Parallel()
 
 	state := newStreamState()
@@ -294,7 +294,7 @@ func TestStreamStateHandleThinkingDelta(t *testing.T) {
 	require.Equal(t, "Let me think...", state.reasoning.String())
 }
 
-func TestStreamStateHandleInputJSONDelta(t *testing.T) {
+func TestAnthropic_StreamStateHandleInputJSONDelta(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns nil when no tool calls", func(t *testing.T) {
@@ -338,7 +338,7 @@ func TestStreamStateHandleInputJSONDelta(t *testing.T) {
 	})
 }
 
-func TestApplyThinking(t *testing.T) {
+func TestAnthropic_ApplyThinking(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -356,8 +356,8 @@ func TestApplyThinking(t *testing.T) {
 			expectThinking:    false,
 		},
 		{
-			name:              "ReasoningEffortNone does nothing",
-			effort:            providers.ReasoningEffortNone,
+			name:              "REASONING_EFFORT_NONE does nothing",
+			effort:            providers.REASONING_EFFORT_NONE,
 			initialMaxTokens:  1000,
 			expectedMaxTokens: 1000,
 			expectThinking:    false,
@@ -371,28 +371,28 @@ func TestApplyThinking(t *testing.T) {
 		},
 		{
 			name:              "low effort increases tokens when insufficient",
-			effort:            providers.ReasoningEffortLow,
+			effort:            providers.REASONING_EFFORT_LOW,
 			initialMaxTokens:  1000,
 			expectedMaxTokens: 2048, // budget=1024, min=2048
 			expectThinking:    true,
 		},
 		{
 			name:              "low effort preserves tokens when sufficient",
-			effort:            providers.ReasoningEffortLow,
+			effort:            providers.REASONING_EFFORT_LOW,
 			initialMaxTokens:  10000,
 			expectedMaxTokens: 10000,
 			expectThinking:    true,
 		},
 		{
 			name:              "medium effort increases tokens when insufficient",
-			effort:            providers.ReasoningEffortMedium,
+			effort:            providers.REASONING_EFFORT_MEDIUM,
 			initialMaxTokens:  1000,
 			expectedMaxTokens: 8192, // budget=4096, min=8192
 			expectThinking:    true,
 		},
 		{
 			name:              "high effort increases tokens when insufficient",
-			effort:            providers.ReasoningEffortHigh,
+			effort:            providers.REASONING_EFFORT_HIGH,
 			initialMaxTokens:  1000,
 			expectedMaxTokens: 32768, // budget=16384, min=32768
 			expectThinking:    true,
@@ -413,7 +413,7 @@ func TestApplyThinking(t *testing.T) {
 	}
 }
 
-func TestConvertMessage(t *testing.T) {
+func TestAnthropic_ConvertMessage(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -423,27 +423,27 @@ func TestConvertMessage(t *testing.T) {
 	}{
 		{
 			name:      "system role returns nil",
-			msg:       providers.Message{Role: providers.RoleSystem, Content: "System prompt"},
+			msg:       providers.Message{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("System prompt")},
 			expectNil: true,
 		},
 		{
 			name:      "unknown role returns nil",
-			msg:       providers.Message{Role: "unknown", Content: "Content"},
+			msg:       providers.Message{Role: "unknown", Content: providers.ContentFromString("Content")},
 			expectNil: true,
 		},
 		{
 			name:      "user role converts",
-			msg:       providers.Message{Role: providers.RoleUser, Content: "Hello"},
+			msg:       providers.Message{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 			expectNil: false,
 		},
 		{
 			name:      "assistant role converts",
-			msg:       providers.Message{Role: providers.RoleAssistant, Content: "Hi there!"},
+			msg:       providers.Message{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hi there!")},
 			expectNil: false,
 		},
 		{
 			name:      "tool role converts",
-			msg:       providers.Message{Role: providers.RoleTool, Content: "Result", ToolCallID: "call_123"},
+			msg:       providers.Message{Role: providers.ROLE_TOOL, Content: providers.ContentFromString("Result"), ToolCallID: "call_123"},
 			expectNil: false,
 		},
 	}
@@ -462,7 +462,7 @@ func TestConvertMessage(t *testing.T) {
 	}
 }
 
-func TestConvertToolCall(t *testing.T) {
+func TestAnthropic_ConvertToolCall(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -526,7 +526,7 @@ func TestConvertToolCall(t *testing.T) {
 	}
 }
 
-func TestConvertTool(t *testing.T) {
+func TestAnthropic_ConvertTool(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts tool with properties and required fields", func(t *testing.T) {
@@ -683,7 +683,7 @@ func TestConvertTool(t *testing.T) {
 	})
 }
 
-func TestThinkingBudget(t *testing.T) {
+func TestAnthropic_ThinkingBudget(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -694,25 +694,25 @@ func TestThinkingBudget(t *testing.T) {
 	}{
 		{
 			name:     "low effort",
-			effort:   providers.ReasoningEffortLow,
+			effort:   providers.REASONING_EFFORT_LOW,
 			expected: 1024,
 			ok:       true,
 		},
 		{
 			name:     "medium effort",
-			effort:   providers.ReasoningEffortMedium,
+			effort:   providers.REASONING_EFFORT_MEDIUM,
 			expected: 4096,
 			ok:       true,
 		},
 		{
 			name:     "high effort",
-			effort:   providers.ReasoningEffortHigh,
+			effort:   providers.REASONING_EFFORT_HIGH,
 			expected: 16384,
 			ok:       true,
 		},
 		{
 			name:     "none effort",
-			effort:   providers.ReasoningEffortNone,
+			effort:   providers.REASONING_EFFORT_NONE,
 			expected: 0,
 			ok:       false,
 		},
@@ -735,7 +735,7 @@ func TestThinkingBudget(t *testing.T) {
 	}
 }
 
-func TestToStringSlice(t *testing.T) {
+func TestAnthropic_ToStringSlice(t *testing.T) {
 	t.Parallel()
 
 	t.Run("returns []string input unchanged", func(t *testing.T) {
@@ -802,7 +802,7 @@ func TestToStringSlice(t *testing.T) {
 
 // Integration tests - only run if API key is available.
 
-func TestIntegrationCompletion(t *testing.T) {
+func TestAnthropic_IntegrationCompletion(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -825,12 +825,12 @@ func TestIntegrationCompletion(t *testing.T) {
 	require.Equal(t, "chat.completion", resp.Object)
 	require.Len(t, resp.Choices, 1)
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
-	require.Equal(t, providers.RoleAssistant, resp.Choices[0].Message.Role)
+	require.Equal(t, providers.ROLE_ASSISTANT, resp.Choices[0].Message.Role)
 	require.NotNil(t, resp.Usage)
 	require.Greater(t, resp.Usage.TotalTokens, 0)
 }
 
-func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
+func TestAnthropic_IntegrationCompletionWithSystemMessage(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -854,7 +854,7 @@ func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
 }
 
-func TestIntegrationCompletionStream(t *testing.T) {
+func TestAnthropic_IntegrationCompletionStream(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -889,7 +889,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 	require.NotEmpty(t, content.String())
 }
 
-func TestCompletionStreamEarlyStopClosesRequest(t *testing.T) {
+func TestAnthropic_CompletionStreamEarlyStopClosesRequest(t *testing.T) {
 	requestDone := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -909,7 +909,7 @@ data: {"type":"message_start","message":{"id":"msg-test","type":"message","role"
 	require.NoError(t, err)
 	params := providers.CompletionParams{
 		Model:    "test-model",
-		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 
 	for _, streamErr := range provider.CompletionStream(t.Context(), params) {
@@ -924,7 +924,7 @@ data: {"type":"message_start","message":{"id":"msg-test","type":"message","role"
 	}
 }
 
-func TestIntegrationCompletionWithTools(t *testing.T) {
+func TestAnthropic_IntegrationCompletionWithTools(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -953,11 +953,11 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 		tc := resp.Choices[0].Message.ToolCalls[0]
 		require.Equal(t, "get_weather", tc.Function.Name)
 		require.Contains(t, strings.ToLower(tc.Function.Arguments), "paris")
-		require.Equal(t, providers.FinishReasonToolCalls, resp.Choices[0].FinishReason)
+		require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, resp.Choices[0].FinishReason)
 	}
 }
 
-func TestIntegrationCompletionWithToolsParallelDisabled(t *testing.T) {
+func TestAnthropic_IntegrationCompletionWithToolsParallelDisabled(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -972,7 +972,7 @@ func TestIntegrationCompletionWithToolsParallelDisabled(t *testing.T) {
 	params := providers.CompletionParams{
 		Model: testutil.TestModel("anthropic"),
 		Messages: []providers.Message{
-			{Role: providers.RoleUser, Content: "Get the weather in Paris and London"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Get the weather in Paris and London")},
 		},
 		Tools:             []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice:        "auto",
@@ -986,7 +986,7 @@ func TestIntegrationCompletionWithToolsParallelDisabled(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 }
 
-func TestIntegrationAgentLoop(t *testing.T) {
+func TestAnthropic_IntegrationAgentLoop(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -1001,7 +1001,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
-		{Role: providers.RoleUser, Content: "What is the weather in Paris? Use the get_weather tool."},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool.")},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -1015,7 +1015,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 
 	// Step 2: Verify the model called the tool.
 	require.NotEmpty(t, resp.Choices[0].Message.ToolCalls, "expected model to call get_weather tool")
-	require.Equal(t, providers.FinishReasonToolCalls, resp.Choices[0].FinishReason)
+	require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, resp.Choices[0].FinishReason)
 
 	tc := resp.Choices[0].Message.ToolCalls[0]
 	require.Equal(t, "get_weather", tc.Function.Name)
@@ -1033,8 +1033,8 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	// Step 4: Add assistant message with tool call and tool result.
 	messages = append(messages, resp.Choices[0].Message)
 	messages = append(messages, providers.Message{
-		Role:       providers.RoleTool,
-		Content:    testutil.MockWeatherResult(t, args.Location),
+		Role:       providers.ROLE_TOOL,
+		Content:    providers.ContentFromString(testutil.MockWeatherResult(t, args.Location)),
 		ToolCallID: tc.ID,
 	})
 
@@ -1048,13 +1048,12 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// Step 6: Verify the model produced a final response.
-	require.Equal(t, providers.FinishReasonStop, resp.Choices[0].FinishReason)
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content in final response")
+	require.Equal(t, providers.FINISH_REASON_STOP, resp.Choices[0].FinishReason)
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.NotEmpty(t, contentStr)
 }
 
-func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
+func TestAnthropic_IntegrationAgentLoopMultipleParams(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -1069,7 +1068,7 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
-		{Role: providers.RoleUser, Content: "Use the calculate tool to add 15 and 27 together."},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together.")},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -1104,8 +1103,8 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	// Complete the agent loop with tool result.
 	messages = append(messages, resp.Choices[0].Message)
 	messages = append(messages, providers.Message{
-		Role:       providers.RoleTool,
-		Content:    testutil.MockCalculatorResult(t, args.A, args.B, args.Operation),
+		Role:       providers.ROLE_TOOL,
+		Content:    providers.ContentFromString(testutil.MockCalculatorResult(t, args.A, args.B, args.Operation)),
 		ToolCallID: tc.ID,
 	})
 
@@ -1117,12 +1116,11 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify final response mentions the result.
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok)
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, contentStr, "42")
 }
 
-func TestIntegrationCompletionConversation(t *testing.T) {
+func TestAnthropic_IntegrationCompletionConversation(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -1145,12 +1143,11 @@ func TestIntegrationCompletionConversation(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// The model should remember the name "Alice".
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content")
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, strings.ToLower(contentStr), "alice")
 }
 
-func TestIntegrationCompletionReasoning(t *testing.T) {
+func TestAnthropic_IntegrationCompletionReasoning(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -1169,9 +1166,9 @@ func TestIntegrationCompletionReasoning(t *testing.T) {
 	params := providers.CompletionParams{
 		Model: model,
 		Messages: []providers.Message{
-			{Role: providers.RoleUser, Content: "Please say hello! Think very briefly before you respond."},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Please say hello! Think very briefly before you respond.")},
 		},
-		ReasoningEffort: providers.ReasoningEffortLow,
+		ReasoningEffort: providers.REASONING_EFFORT_LOW,
 	}
 
 	resp, err := provider.Completion(ctx, params)
@@ -1187,7 +1184,7 @@ func TestIntegrationCompletionReasoning(t *testing.T) {
 	}
 }
 
-func TestIntegrationAgentLoopContinuation(t *testing.T) {
+func TestAnthropic_IntegrationAgentLoopContinuation(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -1216,7 +1213,7 @@ func TestIntegrationAgentLoopContinuation(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// Should have a content response (not another tool call).
-	if contentStr, ok := resp.Choices[0].Message.Content.(string); ok && contentStr != "" {
+	if contentStr := resp.Choices[0].Message.ContentString(); contentStr != "" {
 		content := strings.ToLower(contentStr)
 		// Should mention the weather or sunny.
 		require.True(
@@ -1227,7 +1224,7 @@ func TestIntegrationAgentLoopContinuation(t *testing.T) {
 	}
 }
 
-func TestIntegrationAuthenticationError(t *testing.T) {
+func TestAnthropic_IntegrationAuthenticationError(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("invalid-api-key"))
@@ -1247,7 +1244,7 @@ func TestIntegrationAuthenticationError(t *testing.T) {
 	require.ErrorAs(t, err, &authErr)
 }
 
-func TestIntegrationCompletionWithStructuredOutput(t *testing.T) {
+func TestAnthropic_IntegrationCompletionWithStructuredOutput(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("anthropic") {
@@ -1269,10 +1266,10 @@ func TestIntegrationCompletionWithStructuredOutput(t *testing.T) {
 	result, err := provider.Completion(ctx, providers.CompletionParams{
 		Model: testutil.TestModel("anthropic"),
 		Messages: []providers.Message{
-			{Role: providers.RoleUser, Content: "What is 2+2? Respond using the provided schema."},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is 2+2? Respond using the provided schema.")},
 		},
 		ResponseFormat: &providers.ResponseFormat{
-			Type: responseFormatJSONSchema,
+			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 			JSONSchema: &providers.JSONSchema{
 				Name:   "answer_schema",
 				Schema: schema,
@@ -1284,8 +1281,7 @@ func TestIntegrationCompletionWithStructuredOutput(t *testing.T) {
 	require.Len(t, result.Choices, 1)
 	require.NotEmpty(t, result.Choices[0].Message.Content)
 
-	contentStr, ok := result.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content")
+	contentStr := result.Choices[0].Message.ContentString()
 
 	var response map[string]any
 	err = json.Unmarshal([]byte(contentStr), &response)
@@ -1293,7 +1289,7 @@ func TestIntegrationCompletionWithStructuredOutput(t *testing.T) {
 	require.Contains(t, response, "answer", "response should contain 'answer' key")
 }
 
-func TestConvertError(t *testing.T) {
+func TestAnthropic_ConvertError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -1364,12 +1360,12 @@ func TestConvertError(t *testing.T) {
 			require.True(t, stderrors.Is(result, tc.wantSentinel), "expected error to match %v", tc.wantSentinel)
 
 			// Verify the provider name is set in the error message.
-			require.Contains(t, result.Error(), "["+providerName+"]")
+			require.Contains(t, result.Error(), "["+_PROVIDER_NAME+"]")
 		})
 	}
 }
 
-func TestConvertParams_ResponseFormat(t *testing.T) {
+func TestAnthropic_ConvertParamsResponseFormat(t *testing.T) {
 	t.Parallel()
 
 	schema := map[string]any{
@@ -1387,7 +1383,7 @@ func TestConvertParams_ResponseFormat(t *testing.T) {
 		return providers.CompletionParams{
 			Model: "claude-3-5-haiku-20241022",
 			Messages: []providers.Message{
-				{Role: providers.RoleUser, Content: []providers.ContentPart{{Text: "hello"}}},
+				{Role: providers.ROLE_USER, Content: providers.ContentFromParts(&providers.ContentPartText{Text: "hello"})},
 			},
 		}
 	}
@@ -1407,7 +1403,7 @@ func TestConvertParams_ResponseFormat(t *testing.T) {
 		t.Parallel()
 
 		params := baseParams()
-		params.ResponseFormat = &providers.ResponseFormat{Type: responseFormatJSONObject}
+		params.ResponseFormat = &providers.ResponseFormat{Type: _RESPONSE_FORMAT_JSON_OBJECT}
 
 		result, err := p.convertParams(params)
 		require.NoError(t, err)
@@ -1418,7 +1414,7 @@ func TestConvertParams_ResponseFormat(t *testing.T) {
 		t.Parallel()
 
 		params := baseParams()
-		params.ResponseFormat = &providers.ResponseFormat{Type: responseFormatJSONSchema, JSONSchema: nil}
+		params.ResponseFormat = &providers.ResponseFormat{Type: _RESPONSE_FORMAT_JSON_SCHEMA, JSONSchema: nil}
 
 		result, err := p.convertParams(params)
 		require.NoError(t, err)
@@ -1430,7 +1426,7 @@ func TestConvertParams_ResponseFormat(t *testing.T) {
 
 		params := baseParams()
 		params.ResponseFormat = &providers.ResponseFormat{
-			Type: responseFormatJSONSchema,
+			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 			JSONSchema: &providers.JSONSchema{
 				Name:   "answer_schema",
 				Schema: schema,
@@ -1448,7 +1444,7 @@ func TestConvertParams_ResponseFormat(t *testing.T) {
 		strict := true
 		params := baseParams()
 		params.ResponseFormat = &providers.ResponseFormat{
-			Type: responseFormatJSONSchema,
+			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 			JSONSchema: &providers.JSONSchema{
 				Name:        "answer_schema",
 				Description: "A schema for answers",
@@ -1471,7 +1467,7 @@ func TestConvertParams_ResponseFormat(t *testing.T) {
 		params := baseParams()
 		params.Stream = true
 		params.ResponseFormat = &providers.ResponseFormat{
-			Type: responseFormatJSONSchema,
+			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 			JSONSchema: &providers.JSONSchema{
 				Name:   "answer_schema",
 				Schema: schema,

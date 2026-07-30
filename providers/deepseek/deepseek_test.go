@@ -14,7 +14,7 @@ import (
 	"github.com/humbornjo/llm/providers"
 )
 
-func TestNew(t *testing.T) {
+func TestDeepSeek_New(t *testing.T) {
 	// Note: Not using t.Parallel() here because child test uses t.Setenv.
 
 	t.Run("creates provider with API key", func(t *testing.T) {
@@ -23,11 +23,11 @@ func TestNew(t *testing.T) {
 		provider, err := New(config.WithAPIKey("test-key"))
 		require.NoError(t, err)
 		require.NotNil(t, provider)
-		require.Equal(t, providerName, provider.Name())
+		require.Equal(t, _PROVIDER_NAME, provider.Name())
 	})
 
 	t.Run("returns error when API key is missing", func(t *testing.T) {
-		t.Setenv(envAPIKey, "")
+		t.Setenv(_ENV_API_KEY, "")
 
 		provider, err := New()
 		require.Nil(t, provider)
@@ -35,8 +35,8 @@ func TestNew(t *testing.T) {
 
 		var missingKeyErr *errors.MissingAPIKeyError
 		require.ErrorAs(t, err, &missingKeyErr)
-		require.Equal(t, providerName, missingKeyErr.Provider)
-		require.Equal(t, envAPIKey, missingKeyErr.EnvVar)
+		require.Equal(t, _PROVIDER_NAME, missingKeyErr.Provider)
+		require.Equal(t, _ENV_API_KEY, missingKeyErr.EnvVar)
 	})
 
 	t.Run("creates provider with custom base URL", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestCapabilities(t *testing.T) {
+func TestDeepSeek_Capabilities(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("test-key"))
@@ -69,15 +69,15 @@ func TestCapabilities(t *testing.T) {
 	require.True(t, caps.ListModels)
 }
 
-func TestProviderName(t *testing.T) {
+func TestDeepSeek_ProviderName(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("test-key"))
 	require.NoError(t, err)
-	require.Equal(t, providerName, provider.Name())
+	require.Equal(t, _PROVIDER_NAME, provider.Name())
 }
 
-func TestPreprocessParams(t *testing.T) {
+func TestDeepSeek_PreprocessParams(t *testing.T) {
 	t.Parallel()
 
 	t.Run("passes through params without response format", func(t *testing.T) {
@@ -102,13 +102,13 @@ func TestPreprocessParams(t *testing.T) {
 			Model:    "deepseek-chat",
 			Messages: testutil.SimpleMessages(),
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSONObject,
+				Type: _RESPONSE_FORMAT_JSON_OBJECT,
 			},
 		}
 
 		result := preprocessParams(params)
 
-		require.Equal(t, responseFormatJSONObject, result.ResponseFormat.Type)
+		require.Equal(t, _RESPONSE_FORMAT_JSON_OBJECT, result.ResponseFormat.Type)
 		require.Equal(t, params.Messages, result.Messages)
 	})
 
@@ -118,10 +118,10 @@ func TestPreprocessParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model: "deepseek-chat",
 			Messages: []providers.Message{
-				{Role: providers.RoleUser, Content: "What is 2+2?"},
+				{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is 2+2?")},
 			},
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSONSchema,
+				Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 				JSONSchema: &providers.JSONSchema{
 					Name: "math_response",
 					Schema: map[string]any{
@@ -139,7 +139,7 @@ func TestPreprocessParams(t *testing.T) {
 		result := preprocessParams(params)
 
 		// Should be converted to json_object.
-		require.Equal(t, responseFormatJSONObject, result.ResponseFormat.Type)
+		require.Equal(t, _RESPONSE_FORMAT_JSON_OBJECT, result.ResponseFormat.Type)
 		require.Nil(t, result.ResponseFormat.JSONSchema)
 
 		// Message should contain the schema.
@@ -158,12 +158,12 @@ func TestPreprocessParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model: "deepseek-chat",
 			Messages: []providers.Message{
-				{Role: providers.RoleUser, Content: "Test"},
+				{Role: providers.ROLE_USER, Content: providers.ContentFromString("Test")},
 			},
 			Temperature: &temp,
 			MaxTokens:   &maxTokens,
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSONSchema,
+				Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 				JSONSchema: &providers.JSONSchema{
 					Name:   "test",
 					Schema: map[string]any{"type": "object"},
@@ -184,10 +184,10 @@ func TestPreprocessParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model: "deepseek-chat",
 			Messages: []providers.Message{
-				{Role: providers.RoleSystem, Content: "You are helpful."},
+				{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("You are helpful.")},
 			},
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSONSchema,
+				Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 				JSONSchema: &providers.JSONSchema{
 					Name:   "test",
 					Schema: map[string]any{"type": "object"},
@@ -198,7 +198,7 @@ func TestPreprocessParams(t *testing.T) {
 		result := preprocessParams(params)
 
 		// Should return original params unchanged since injection failed.
-		require.Equal(t, responseFormatJSONSchema, result.ResponseFormat.Type)
+		require.Equal(t, _RESPONSE_FORMAT_JSON_SCHEMA, result.ResponseFormat.Type)
 		require.NotNil(t, result.ResponseFormat.JSONSchema)
 	})
 
@@ -209,15 +209,15 @@ func TestPreprocessParams(t *testing.T) {
 			Model: "deepseek-chat",
 			Messages: []providers.Message{
 				{
-					Role: providers.RoleUser,
-					Content: []providers.ContentPart{
-						{Type: "text", Text: "What is this?"},
-						{Type: "image_url", ImageURL: &providers.ImageURL{URL: "https://example.com/img.png"}},
-					},
+					Role: providers.ROLE_USER,
+					Content: providers.ContentFromParts(
+						&providers.ContentPartText{Text: "What is this?"},
+						&providers.ContentPartImage{ImageURL: &providers.ImageURL{URL: "https://example.com/img.png"}},
+					),
 				},
 			},
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSONSchema,
+				Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 				JSONSchema: &providers.JSONSchema{
 					Name:   "test",
 					Schema: map[string]any{"type": "object"},
@@ -228,20 +228,20 @@ func TestPreprocessParams(t *testing.T) {
 		result := preprocessParams(params)
 
 		// Should return original params unchanged since multimodal content can't be modified.
-		require.Equal(t, responseFormatJSONSchema, result.ResponseFormat.Type)
+		require.Equal(t, _RESPONSE_FORMAT_JSON_SCHEMA, result.ResponseFormat.Type)
 		require.NotNil(t, result.ResponseFormat.JSONSchema)
 	})
 }
 
-func TestPreprocessMessagesForJSONSchema(t *testing.T) {
+func TestDeepSeek_PreprocessMessagesForJSONSchema(t *testing.T) {
 	t.Parallel()
 
 	t.Run("injects schema into last user message", func(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleSystem, Content: "You are helpful."},
-			{Role: providers.RoleUser, Content: "What is 2+2?"},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("You are helpful.")},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is 2+2?")},
 		}
 		schema := map[string]any{
 			"type": "object",
@@ -267,9 +267,9 @@ func TestPreprocessMessagesForJSONSchema(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
-			{Role: providers.RoleAssistant, Content: "Hi there!"},
-			{Role: providers.RoleUser, Content: "Give me a number."},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
+			{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hi there!")},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Give me a number.")},
 		}
 		schema := map[string]any{"type": "object"}
 
@@ -289,7 +289,7 @@ func TestPreprocessMessagesForJSONSchema(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleSystem, Content: "System"},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("System")},
 		}
 		schema := map[string]any{"type": "object"}
 
@@ -304,11 +304,11 @@ func TestPreprocessMessagesForJSONSchema(t *testing.T) {
 
 		messages := []providers.Message{
 			{
-				Role: providers.RoleUser,
-				Content: []providers.ContentPart{
-					{Type: "text", Text: "What is this?"},
-					{Type: "image_url", ImageURL: &providers.ImageURL{URL: "https://example.com/img.png"}},
-				},
+				Role: providers.ROLE_USER,
+				Content: providers.ContentFromParts(
+					&providers.ContentPartText{Text: "What is this?"},
+					&providers.ContentPartImage{ImageURL: &providers.ImageURL{URL: "https://example.com/img.png"}},
+				),
 			},
 		}
 		schema := map[string]any{"type": "object"}
@@ -323,7 +323,7 @@ func TestPreprocessMessagesForJSONSchema(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Original content"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Original content")},
 		}
 		schema := map[string]any{"type": "object"}
 
@@ -339,8 +339,8 @@ func TestPreprocessMessagesForJSONSchema(t *testing.T) {
 
 		messages := []providers.Message{
 			{
-				Role:      providers.RoleUser,
-				Content:   "What is 2+2?",
+				Role:      providers.ROLE_USER,
+				Content:   providers.ContentFromString("What is 2+2?"),
 				Reasoning: &providers.Reasoning{Content: "thinking..."},
 			},
 		}
@@ -354,7 +354,7 @@ func TestPreprocessMessagesForJSONSchema(t *testing.T) {
 	})
 }
 
-func TestCompletionSendsMaxTokensOnWire(t *testing.T) {
+func TestDeepSeek_CompletionSendsMaxTokensOnWire(t *testing.T) {
 	t.Parallel()
 
 	serverURL, capturedBody := testutil.FakeCompletionServer(t)
@@ -386,7 +386,7 @@ func TestCompletionSendsMaxTokensOnWire(t *testing.T) {
 	require.Equal(t, float64(512), body["max_tokens"])
 }
 
-func TestCompletionStreamSendsMaxTokensOnWire(t *testing.T) {
+func TestDeepSeek_CompletionStreamSendsMaxTokensOnWire(t *testing.T) {
 	t.Parallel()
 
 	serverURL, capturedBody := testutil.FakeStreamingServer(t)
@@ -421,10 +421,10 @@ func TestCompletionStreamSendsMaxTokensOnWire(t *testing.T) {
 
 // Integration tests - only run if DeepSeek API key is available.
 
-func TestIntegrationCompletion(t *testing.T) {
+func TestDeepSeek_IntegrationCompletion(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -433,7 +433,7 @@ func TestIntegrationCompletion(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.SimpleMessages(),
 	}
 
@@ -441,16 +441,16 @@ func TestIntegrationCompletion(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, resp.ID)
-	require.Equal(t, objectChatCompletion, resp.Object)
+	require.Equal(t, _OBJECT_CHAT_COMPLETION, resp.Object)
 	require.Len(t, resp.Choices, 1)
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
-	require.Equal(t, providers.RoleAssistant, resp.Choices[0].Message.Role)
+	require.Equal(t, providers.ROLE_ASSISTANT, resp.Choices[0].Message.Role)
 }
 
-func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
+func TestDeepSeek_IntegrationCompletionWithSystemMessage(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -459,7 +459,7 @@ func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.MessagesWithSystem(),
 	}
 
@@ -471,10 +471,10 @@ func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
 }
 
-func TestIntegrationCompletionStream(t *testing.T) {
+func TestDeepSeek_IntegrationCompletionStream(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -483,7 +483,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.SimpleMessages(),
 		Stream:   true,
 	}
@@ -496,7 +496,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 	for chunk, streamErr := range chunks {
 		require.NoError(t, streamErr)
 		chunkCount++
-		require.Equal(t, objectChatCompletionChunk, chunk.Object)
+		require.Equal(t, _OBJECT_CHAT_COMPLETION_CHUNK, chunk.Object)
 		if len(chunk.Choices) > 0 {
 			content.WriteString(chunk.Choices[0].Delta.Content)
 		}
@@ -506,10 +506,10 @@ func TestIntegrationCompletionStream(t *testing.T) {
 	require.NotEmpty(t, content.String())
 }
 
-func TestIntegrationListModels(t *testing.T) {
+func TestDeepSeek_IntegrationListModels(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -520,14 +520,14 @@ func TestIntegrationListModels(t *testing.T) {
 	resp, err := provider.ListModels(ctx)
 	require.NoError(t, err)
 
-	require.Equal(t, objectList, resp.Object)
+	require.Equal(t, _OBJECT_LIST, resp.Object)
 	require.NotEmpty(t, resp.Data)
 }
 
-func TestIntegrationCompletionConversation(t *testing.T) {
+func TestDeepSeek_IntegrationCompletionConversation(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -536,7 +536,7 @@ func TestIntegrationCompletionConversation(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.ConversationMessages(),
 	}
 
@@ -547,15 +547,14 @@ func TestIntegrationCompletionConversation(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// The model should remember the name "Alice".
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content")
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, strings.ToLower(contentStr), "alice")
 }
 
-func TestIntegrationJSONSchema(t *testing.T) {
+func TestDeepSeek_IntegrationJSONSchema(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -564,12 +563,15 @@ func TestIntegrationJSONSchema(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model: testutil.TestModel(providerName),
+		Model: testutil.TestModel(_PROVIDER_NAME),
 		Messages: []providers.Message{
-			{Role: providers.RoleUser, Content: "What is 2+2? Give the answer as an integer."},
+			{
+				Role:    providers.ROLE_USER,
+				Content: providers.ContentFromString("What is 2+2? Give the answer as an integer."),
+			},
 		},
 		ResponseFormat: &providers.ResponseFormat{
-			Type: responseFormatJSONSchema,
+			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 			JSONSchema: &providers.JSONSchema{
 				Name:        "math_response",
 				Description: "A mathematical response",
@@ -594,15 +596,14 @@ func TestIntegrationJSONSchema(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// Response should be valid JSON containing "answer".
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content")
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, contentStr, "answer")
 }
 
-func TestIntegrationCompletionWithTools(t *testing.T) {
+func TestDeepSeek_IntegrationCompletionWithTools(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -611,7 +612,7 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:      testutil.TestModel(providerName),
+		Model:      testutil.TestModel(_PROVIDER_NAME),
 		Messages:   testutil.ToolCallMessages(),
 		Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice: "auto",
@@ -634,10 +635,10 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 	}
 }
 
-func TestIntegrationAgentLoop(t *testing.T) {
+func TestDeepSeek_IntegrationAgentLoop(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -649,11 +650,14 @@ func TestIntegrationAgentLoop(t *testing.T) {
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
-		{Role: providers.RoleUser, Content: "What is the weather in Paris? Use the get_weather tool."},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool."),
+		},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
-		Model:      testutil.TestModel(providerName),
+		Model:      testutil.TestModel(_PROVIDER_NAME),
 		Messages:   messages,
 		Tools:      tools,
 		ToolChoice: "auto",
@@ -663,7 +667,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 
 	// Step 2: Verify the model called the tool.
 	require.NotEmpty(t, resp.Choices[0].Message.ToolCalls, "expected model to call get_weather tool")
-	require.Equal(t, providers.FinishReasonToolCalls, resp.Choices[0].FinishReason)
+	require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, resp.Choices[0].FinishReason)
 
 	tc := resp.Choices[0].Message.ToolCalls[0]
 	require.Equal(t, "get_weather", tc.Function.Name)
@@ -681,14 +685,14 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	// Step 4: Add assistant message with tool call and tool result.
 	messages = append(messages, resp.Choices[0].Message)
 	messages = append(messages, providers.Message{
-		Role:       providers.RoleTool,
-		Content:    testutil.MockWeatherResult(t, args.Location),
+		Role:       providers.ROLE_TOOL,
+		Content:    providers.ContentFromString(testutil.MockWeatherResult(t, args.Location)),
 		ToolCallID: tc.ID,
 	})
 
 	// Step 5: Continue conversation with tool result.
 	resp, err = provider.Completion(ctx, providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: messages,
 		Tools:    tools,
 	})
@@ -696,16 +700,15 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// Step 6: Verify the model produced a final response.
-	require.Equal(t, providers.FinishReasonStop, resp.Choices[0].FinishReason)
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content in final response")
+	require.Equal(t, providers.FINISH_REASON_STOP, resp.Choices[0].FinishReason)
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.NotEmpty(t, contentStr)
 }
 
-func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
+func TestDeepSeek_IntegrationAgentLoopMultipleParams(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("DEEPSEEK_API_KEY not set")
 	}
 
@@ -717,11 +720,14 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
-		{Role: providers.RoleUser, Content: "Use the calculate tool to add 15 and 27 together."},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together."),
+		},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
-		Model:      testutil.TestModel(providerName),
+		Model:      testutil.TestModel(_PROVIDER_NAME),
 		Messages:   messages,
 		Tools:      tools,
 		ToolChoice: "auto",
@@ -752,20 +758,19 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	// Complete the agent loop with tool result.
 	messages = append(messages, resp.Choices[0].Message)
 	messages = append(messages, providers.Message{
-		Role:       providers.RoleTool,
-		Content:    testutil.MockCalculatorResult(t, args.A, args.B, args.Operation),
+		Role:       providers.ROLE_TOOL,
+		Content:    providers.ContentFromString(testutil.MockCalculatorResult(t, args.A, args.B, args.Operation)),
 		ToolCallID: tc.ID,
 	})
 
 	resp, err = provider.Completion(ctx, providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: messages,
 		Tools:    tools,
 	})
 	require.NoError(t, err)
 
 	// Verify final response mentions the result.
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok)
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, contentStr, "42")
 }

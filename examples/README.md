@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example code demonstrating various features of any-llm-go.
+This directory contains example code demonstrating various features of llm.
 
 ## Prerequisites
 

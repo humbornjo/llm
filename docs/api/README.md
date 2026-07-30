@@ -1,6 +1,6 @@
 # API Reference
 
-This section documents the public API of any-llm-go.
+This section documents the public API of llm.
 
 ## Core Functions
 

@@ -20,12 +20,12 @@ import (
 	"github.com/humbornjo/llm/providers"
 )
 
-func TestNew(t *testing.T) {
+func TestGemini_New(t *testing.T) {
 	t.Run("creates provider with API key", func(t *testing.T) {
 		provider, err := New(config.WithAPIKey("test-api-key"))
 		require.NoError(t, err)
 		require.NotNil(t, provider)
-		require.Equal(t, providerName, provider.Name())
+		require.Equal(t, _PROVIDER_NAME, provider.Name())
 	})
 
 	t.Run("creates provider from GEMINI_API_KEY", func(t *testing.T) {
@@ -55,12 +55,12 @@ func TestNew(t *testing.T) {
 
 		var missingKeyErr *errors.MissingAPIKeyError
 		require.ErrorAs(t, err, &missingKeyErr)
-		require.Equal(t, providerName, missingKeyErr.Provider)
-		require.Equal(t, envAPIKey, missingKeyErr.EnvVar)
+		require.Equal(t, _PROVIDER_NAME, missingKeyErr.Provider)
+		require.Equal(t, _ENV_API_KEY, missingKeyErr.EnvVar)
 	})
 }
 
-func TestCapabilities(t *testing.T) {
+func TestGemini_Capabilities(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("test-key"))
@@ -78,15 +78,15 @@ func TestCapabilities(t *testing.T) {
 	require.True(t, caps.ListModels)
 }
 
-func TestConvertMessages(t *testing.T) {
+func TestGemini_ConvertMessages(t *testing.T) {
 	t.Parallel()
 
 	t.Run("extracts system message", func(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleSystem, Content: "You are a helpful assistant."},
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("You are a helpful assistant.")},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		result, system := convertMessages(messages)
@@ -101,9 +101,9 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleSystem, Content: "First part."},
-			{Role: providers.RoleSystem, Content: "Second part."},
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("First part.")},
+			{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("Second part.")},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		result, system := convertMessages(messages)
@@ -118,7 +118,7 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		result, system := convertMessages(messages)
@@ -132,15 +132,15 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
-			{Role: providers.RoleAssistant, Content: "Hi there!"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
+			{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hi there!")},
 		}
 
 		result, system := convertMessages(messages)
 
 		require.Nil(t, system)
 		require.Len(t, result, 2)
-		require.Equal(t, roleModel, result[1].Role)
+		require.Equal(t, _ROLE_MODEL, result[1].Role)
 		require.Equal(t, "Hi there!", result[1].Parts[0].Text)
 	})
 
@@ -148,10 +148,10 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "What's the weather?"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What's the weather?")},
 			{
-				Role:    providers.RoleAssistant,
-				Content: "",
+				Role:    providers.ROLE_ASSISTANT,
+				Content: providers.ContentFromString(""),
 				ToolCalls: []providers.ToolCall{
 					{
 						ID:   "call_123",
@@ -168,7 +168,7 @@ func TestConvertMessages(t *testing.T) {
 		result, _ := convertMessages(messages)
 
 		require.Len(t, result, 2)
-		require.Equal(t, roleModel, result[1].Role)
+		require.Equal(t, _ROLE_MODEL, result[1].Role)
 		require.NotNil(t, result[1].Parts[0].FunctionCall)
 		require.Equal(t, "get_weather", result[1].Parts[0].FunctionCall.Name)
 	})
@@ -177,8 +177,8 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
-			{Role: providers.RoleTool, Content: "sunny, 22°C", Name: "get_weather"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
+			{Role: providers.ROLE_TOOL, Content: providers.ContentFromString("sunny, 22°C"), Name: "get_weather"},
 		}
 
 		result, _ := convertMessages(messages)
@@ -195,8 +195,8 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
-			{Role: providers.RoleTool, Content: `{"temperature": 22, "condition": "sunny"}`, Name: "get_weather"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
+			{Role: providers.ROLE_TOOL, Content: providers.ContentFromString(`{"temperature": 22, "condition": "sunny"}`), Name: "get_weather"},
 		}
 
 		result, _ := convertMessages(messages)
@@ -211,7 +211,7 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleTool, Content: "result data"},
+			{Role: providers.ROLE_TOOL, Content: providers.ContentFromString("result data")},
 		}
 
 		result, _ := convertMessages(messages)
@@ -224,7 +224,7 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "Hello"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 		}
 
 		_, system := convertMessages(messages)
@@ -236,10 +236,10 @@ func TestConvertMessages(t *testing.T) {
 
 		sig := base64.StdEncoding.EncodeToString([]byte("real-signature"))
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "What's the weather?"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What's the weather?")},
 			{
-				Role:    providers.RoleAssistant,
-				Content: "",
+				Role:    providers.ROLE_ASSISTANT,
+				Content: providers.ContentFromString(""),
 				ToolCalls: []providers.ToolCall{
 					{
 						ID:   "call_123",
@@ -249,7 +249,7 @@ func TestConvertMessages(t *testing.T) {
 							Arguments: `{"location": "Paris"}`,
 						},
 						Extra: map[string]providers.ProviderData{
-							providerName: {extraKeyThoughtSignature: sig},
+							_PROVIDER_NAME: {_EXTRA_KEY_THOUGHT_SIGNATURE: sig},
 						},
 					},
 				},
@@ -259,7 +259,7 @@ func TestConvertMessages(t *testing.T) {
 		result, _ := convertMessages(messages)
 
 		require.Len(t, result, 2)
-		require.Equal(t, roleModel, result[1].Role)
+		require.Equal(t, _ROLE_MODEL, result[1].Role)
 		require.NotNil(t, result[1].Parts[0].FunctionCall)
 		require.Equal(t, []byte("real-signature"), result[1].Parts[0].ThoughtSignature)
 	})
@@ -268,10 +268,10 @@ func TestConvertMessages(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: providers.RoleUser, Content: "What's the weather?"},
+			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What's the weather?")},
 			{
-				Role:    providers.RoleAssistant,
-				Content: "",
+				Role:    providers.ROLE_ASSISTANT,
+				Content: providers.ContentFromString(""),
 				ToolCalls: []providers.ToolCall{
 					{
 						ID:   "call_123",
@@ -289,14 +289,14 @@ func TestConvertMessages(t *testing.T) {
 
 		require.Len(t, result, 2)
 		require.NotNil(t, result[1].Parts[0].FunctionCall)
-		require.Equal(t, []byte(thoughtSignatureBypass), result[1].Parts[0].ThoughtSignature)
+		require.Equal(t, []byte(_THOUGHT_SIGNATURE_BYPASS), result[1].Parts[0].ThoughtSignature)
 	})
 
 	t.Run("unknown role returns nil", func(t *testing.T) {
 		t.Parallel()
 
 		messages := []providers.Message{
-			{Role: "unknown", Content: "Hello"},
+			{Role: "unknown", Content: providers.ContentFromString("Hello")},
 		}
 
 		result, _ := convertMessages(messages)
@@ -304,7 +304,7 @@ func TestConvertMessages(t *testing.T) {
 	})
 }
 
-func TestConvertFinishReason(t *testing.T) {
+func TestGemini_ConvertFinishReason(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -315,37 +315,37 @@ func TestConvertFinishReason(t *testing.T) {
 		{
 			name:     "STOP",
 			input:    genai.FinishReasonStop,
-			expected: providers.FinishReasonStop,
+			expected: providers.FINISH_REASON_STOP,
 		},
 		{
 			name:     "MAX_TOKENS",
 			input:    genai.FinishReasonMaxTokens,
-			expected: providers.FinishReasonLength,
+			expected: providers.FINISH_REASON_LENGTH,
 		},
 		{
 			name:     "SAFETY",
 			input:    genai.FinishReasonSafety,
-			expected: providers.FinishReasonContentFilter,
+			expected: providers.FINISH_REASON_CONTENT_FILTER,
 		},
 		{
 			name:     "RECITATION",
 			input:    genai.FinishReasonRecitation,
-			expected: providers.FinishReasonStop,
+			expected: providers.FINISH_REASON_STOP,
 		},
 		{
 			name:     "BLOCKLIST",
 			input:    genai.FinishReasonBlocklist,
-			expected: providers.FinishReasonContentFilter,
+			expected: providers.FINISH_REASON_CONTENT_FILTER,
 		},
 		{
 			name:     "PROHIBITED_CONTENT",
 			input:    genai.FinishReasonProhibitedContent,
-			expected: providers.FinishReasonContentFilter,
+			expected: providers.FINISH_REASON_CONTENT_FILTER,
 		},
 		{
 			name:     "unknown",
 			input:    "UNKNOWN",
-			expected: providers.FinishReasonStop,
+			expected: providers.FINISH_REASON_STOP,
 		},
 	}
 
@@ -359,7 +359,7 @@ func TestConvertFinishReason(t *testing.T) {
 	}
 }
 
-func TestConvertTools(t *testing.T) {
+func TestGemini_ConvertTools(t *testing.T) {
 	t.Parallel()
 
 	tools := []providers.ToolInfo{
@@ -391,7 +391,7 @@ func TestConvertTools(t *testing.T) {
 	require.NotNil(t, result[0].FunctionDeclarations[0].ParametersJsonSchema)
 }
 
-func TestConvertToolChoice(t *testing.T) {
+func TestGemini_ConvertToolChoice(t *testing.T) {
 	t.Parallel()
 
 	t.Run("auto string", func(t *testing.T) {
@@ -438,7 +438,7 @@ func TestConvertToolChoice(t *testing.T) {
 	})
 }
 
-func TestConvertError(t *testing.T) {
+func TestGemini_ConvertError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -523,12 +523,12 @@ func TestConvertError(t *testing.T) {
 				tc.wantSentinel,
 				result,
 			)
-			require.Contains(t, result.Error(), "["+providerName+"]")
+			require.Contains(t, result.Error(), "["+_PROVIDER_NAME+"]")
 		})
 	}
 }
 
-func TestThinkingBudget(t *testing.T) {
+func TestGemini_ThinkingBudget(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -539,25 +539,25 @@ func TestThinkingBudget(t *testing.T) {
 	}{
 		{
 			name:     "low effort",
-			effort:   providers.ReasoningEffortLow,
-			expected: thinkingBudgetLow,
+			effort:   providers.REASONING_EFFORT_LOW,
+			expected: _THINKING_BUDGET_LOW,
 			ok:       true,
 		},
 		{
 			name:     "medium effort",
-			effort:   providers.ReasoningEffortMedium,
-			expected: thinkingBudgetMedium,
+			effort:   providers.REASONING_EFFORT_MEDIUM,
+			expected: _THINKING_BUDGET_MEDIUM,
 			ok:       true,
 		},
 		{
 			name:     "high effort",
-			effort:   providers.ReasoningEffortHigh,
-			expected: thinkingBudgetHigh,
+			effort:   providers.REASONING_EFFORT_HIGH,
+			expected: _THINKING_BUDGET_HIGH,
 			ok:       true,
 		},
 		{
 			name:     "none effort",
-			effort:   providers.ReasoningEffortNone,
+			effort:   providers.REASONING_EFFORT_NONE,
 			expected: 0,
 			ok:       false,
 		},
@@ -580,7 +580,7 @@ func TestThinkingBudget(t *testing.T) {
 	}
 }
 
-func TestApplyThinking(t *testing.T) {
+func TestGemini_ApplyThinking(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty effort does nothing", func(t *testing.T) {
@@ -595,7 +595,7 @@ func TestApplyThinking(t *testing.T) {
 		t.Parallel()
 
 		cfg := &genai.GenerateContentConfig{}
-		applyThinking(cfg, providers.ReasoningEffortNone)
+		applyThinking(cfg, providers.REASONING_EFFORT_NONE)
 		require.Nil(t, cfg.ThinkingConfig)
 	})
 
@@ -603,24 +603,24 @@ func TestApplyThinking(t *testing.T) {
 		t.Parallel()
 
 		cfg := &genai.GenerateContentConfig{}
-		applyThinking(cfg, providers.ReasoningEffortLow)
+		applyThinking(cfg, providers.REASONING_EFFORT_LOW)
 		require.NotNil(t, cfg.ThinkingConfig)
 		require.True(t, cfg.ThinkingConfig.IncludeThoughts)
-		require.Equal(t, thinkingBudgetLow, *cfg.ThinkingConfig.ThinkingBudget)
+		require.Equal(t, _THINKING_BUDGET_LOW, *cfg.ThinkingConfig.ThinkingBudget)
 	})
 
 	t.Run("high effort sets thinking config", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := &genai.GenerateContentConfig{}
-		applyThinking(cfg, providers.ReasoningEffortHigh)
+		applyThinking(cfg, providers.REASONING_EFFORT_HIGH)
 		require.NotNil(t, cfg.ThinkingConfig)
 		require.True(t, cfg.ThinkingConfig.IncludeThoughts)
-		require.Equal(t, thinkingBudgetHigh, *cfg.ThinkingConfig.ThinkingBudget)
+		require.Equal(t, _THINKING_BUDGET_HIGH, *cfg.ThinkingConfig.ThinkingBudget)
 	})
 }
 
-func TestConvertImagePart(t *testing.T) {
+func TestGemini_ConvertImagePart(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts base64 image", func(t *testing.T) {
@@ -644,7 +644,7 @@ func TestConvertImagePart(t *testing.T) {
 	})
 }
 
-func TestConvertEmbeddingInput(t *testing.T) {
+func TestGemini_ConvertEmbeddingInput(t *testing.T) {
 	t.Parallel()
 
 	t.Run("string input", func(t *testing.T) {
@@ -667,23 +667,23 @@ func TestConvertEmbeddingInput(t *testing.T) {
 	})
 }
 
-func TestGenerateID(t *testing.T) {
+func TestGemini_GenerateID(t *testing.T) {
 	t.Parallel()
 
 	t.Run("has correct prefix", func(t *testing.T) {
 		t.Parallel()
 
-		id, err := generateID(idPrefixCompletion)
+		id, err := generateID(_ID_PREFIX_COMPLETION)
 		require.NoError(t, err)
-		require.True(t, strings.HasPrefix(id, idPrefixCompletion))
+		require.True(t, strings.HasPrefix(id, _ID_PREFIX_COMPLETION))
 	})
 
 	t.Run("generates unique IDs", func(t *testing.T) {
 		t.Parallel()
 
-		id1, err := generateID(idPrefixToolCall)
+		id1, err := generateID(_ID_PREFIX_TOOL_CALL)
 		require.NoError(t, err)
-		id2, err := generateID(idPrefixToolCall)
+		id2, err := generateID(_ID_PREFIX_TOOL_CALL)
 		require.NoError(t, err)
 		require.NotEqual(t, id1, id2)
 	})
@@ -698,19 +698,19 @@ func TestGenerateID(t *testing.T) {
 	})
 }
 
-func TestNewStreamState(t *testing.T) {
+func TestGemini_NewStreamState(t *testing.T) {
 	t.Parallel()
 
 	state, err := newStreamState("gemini-1.5-flash")
 	require.NoError(t, err)
 	require.NotNil(t, state)
 	require.Equal(t, "gemini-1.5-flash", state.model)
-	require.True(t, strings.HasPrefix(state.messageID, idPrefixCompletion))
+	require.True(t, strings.HasPrefix(state.messageID, _ID_PREFIX_COMPLETION))
 	require.Nil(t, state.toolCalls)
 	require.Nil(t, state.usage)
 }
 
-func TestSetProviderExtra(t *testing.T) {
+func TestGemini_SetProviderExtra(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -724,33 +724,33 @@ func TestSetProviderExtra(t *testing.T) {
 		{
 			name:     "nil Extra initialises both maps",
 			initial:  nil,
-			provider: providerName,
+			provider: _PROVIDER_NAME,
 			key:      "thought_signature",
 			value:    "abc123",
 			expected: map[string]providers.ProviderData{
-				providerName: {"thought_signature": "abc123"},
+				_PROVIDER_NAME: {"thought_signature": "abc123"},
 			},
 		},
 		{
 			name:     "nil provider map initialises inner map",
 			initial:  map[string]providers.ProviderData{},
-			provider: providerName,
+			provider: _PROVIDER_NAME,
 			key:      "thought_signature",
 			value:    "abc123",
 			expected: map[string]providers.ProviderData{
-				providerName: {"thought_signature": "abc123"},
+				_PROVIDER_NAME: {"thought_signature": "abc123"},
 			},
 		},
 		{
 			name: "preserves existing provider keys",
 			initial: map[string]providers.ProviderData{
-				providerName: {"existing_key": "existing_value"},
+				_PROVIDER_NAME: {"existing_key": "existing_value"},
 			},
-			provider: providerName,
+			provider: _PROVIDER_NAME,
 			key:      "thought_signature",
 			value:    "abc123",
 			expected: map[string]providers.ProviderData{
-				providerName: {
+				_PROVIDER_NAME: {
 					"existing_key":      "existing_value",
 					"thought_signature": "abc123",
 				},
@@ -761,24 +761,24 @@ func TestSetProviderExtra(t *testing.T) {
 			initial: map[string]providers.ProviderData{
 				"other": {"key": "value"},
 			},
-			provider: providerName,
+			provider: _PROVIDER_NAME,
 			key:      "thought_signature",
 			value:    "abc123",
 			expected: map[string]providers.ProviderData{
-				"other":      {"key": "value"},
-				providerName: {"thought_signature": "abc123"},
+				"other":        {"key": "value"},
+				_PROVIDER_NAME: {"thought_signature": "abc123"},
 			},
 		},
 		{
 			name: "overwrites existing key",
 			initial: map[string]providers.ProviderData{
-				providerName: {"thought_signature": "old"},
+				_PROVIDER_NAME: {"thought_signature": "old"},
 			},
-			provider: providerName,
+			provider: _PROVIDER_NAME,
 			key:      "thought_signature",
 			value:    "new",
 			expected: map[string]providers.ProviderData{
-				providerName: {"thought_signature": "new"},
+				_PROVIDER_NAME: {"thought_signature": "new"},
 			},
 		},
 	}
@@ -794,7 +794,7 @@ func TestSetProviderExtra(t *testing.T) {
 	}
 }
 
-func TestThoughtSignatureFromExtra(t *testing.T) {
+func TestGemini_ThoughtSignatureFromExtra(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -815,29 +815,29 @@ func TestThoughtSignatureFromExtra(t *testing.T) {
 		{
 			name: "missing key returns nil",
 			extra: map[string]providers.ProviderData{
-				providerName: {"other_key": "value"},
+				_PROVIDER_NAME: {"other_key": "value"},
 			},
 			expected: nil,
 		},
 		{
 			name: "wrong type returns nil",
 			extra: map[string]providers.ProviderData{
-				providerName: {extraKeyThoughtSignature: 12345},
+				_PROVIDER_NAME: {_EXTRA_KEY_THOUGHT_SIGNATURE: 12345},
 			},
 			expected: nil,
 		},
 		{
 			name: "invalid base64 returns nil",
 			extra: map[string]providers.ProviderData{
-				providerName: {extraKeyThoughtSignature: "not-valid-base64!!!"},
+				_PROVIDER_NAME: {_EXTRA_KEY_THOUGHT_SIGNATURE: "not-valid-base64!!!"},
 			},
 			expected: nil,
 		},
 		{
 			name: "valid signature decodes correctly",
 			extra: map[string]providers.ProviderData{
-				providerName: {
-					extraKeyThoughtSignature: base64.StdEncoding.EncodeToString([]byte("test-sig")),
+				_PROVIDER_NAME: {
+					_EXTRA_KEY_THOUGHT_SIGNATURE: base64.StdEncoding.EncodeToString([]byte("test-sig")),
 				},
 			},
 			expected: []byte("test-sig"),
@@ -854,7 +854,7 @@ func TestThoughtSignatureFromExtra(t *testing.T) {
 	}
 }
 
-func TestThoughtSignatureRoundTrip(t *testing.T) {
+func TestGemini_ThoughtSignatureRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	// Simulate an API response with a ThoughtSignature on a function call.
@@ -885,8 +885,8 @@ func TestThoughtSignatureRoundTrip(t *testing.T) {
 
 	// Build a message with the captured tool call (as a caller would).
 	assistantMsg := providers.Message{
-		Role:      providers.RoleAssistant,
-		Content:   "",
+		Role:      providers.ROLE_ASSISTANT,
+		Content:   providers.ContentFromString(""),
 		ToolCalls: []providers.ToolCall{capturedTC},
 	}
 
@@ -899,7 +899,7 @@ func TestThoughtSignatureRoundTrip(t *testing.T) {
 	require.Equal(t, originalSig, content.Parts[0].ThoughtSignature)
 }
 
-func TestThoughtSignatureWireFormat(t *testing.T) {
+func TestGemini_ThoughtSignatureWireFormat(t *testing.T) {
 	t.Parallel()
 
 	t.Run("bypass value is base64-encoded by json.Marshal", func(t *testing.T) {
@@ -907,7 +907,7 @@ func TestThoughtSignatureWireFormat(t *testing.T) {
 
 		// Build a message with no Extra — should get the bypass.
 		msg := providers.Message{
-			Role: providers.RoleAssistant,
+			Role: providers.ROLE_ASSISTANT,
 			ToolCalls: []providers.ToolCall{{
 				ID:   "call_1",
 				Type: "function",
@@ -928,10 +928,10 @@ func TestThoughtSignatureWireFormat(t *testing.T) {
 		wireJSON := string(raw)
 
 		// The literal bypass must NOT appear — json.Marshal base64-encodes []byte.
-		require.NotContains(t, wireJSON, thoughtSignatureBypass)
+		require.NotContains(t, wireJSON, _THOUGHT_SIGNATURE_BYPASS)
 
 		// The base64-encoded form must appear instead.
-		encoded := base64.StdEncoding.EncodeToString([]byte(thoughtSignatureBypass))
+		encoded := base64.StdEncoding.EncodeToString([]byte(_THOUGHT_SIGNATURE_BYPASS))
 		require.Contains(t, wireJSON, encoded)
 	})
 
@@ -942,7 +942,7 @@ func TestThoughtSignatureWireFormat(t *testing.T) {
 		storedB64 := base64.StdEncoding.EncodeToString(realSig)
 
 		msg := providers.Message{
-			Role: providers.RoleAssistant,
+			Role: providers.ROLE_ASSISTANT,
 			ToolCalls: []providers.ToolCall{{
 				ID:   "call_1",
 				Type: "function",
@@ -951,7 +951,7 @@ func TestThoughtSignatureWireFormat(t *testing.T) {
 					Arguments: `{"q":"test"}`,
 				},
 				Extra: map[string]providers.ProviderData{
-					providerName: {extraKeyThoughtSignature: storedB64},
+					_PROVIDER_NAME: {_EXTRA_KEY_THOUGHT_SIGNATURE: storedB64},
 				},
 			}},
 		}
@@ -975,7 +975,7 @@ func TestThoughtSignatureWireFormat(t *testing.T) {
 	})
 }
 
-func TestStreamStateProcessResponse(t *testing.T) {
+func TestGemini_StreamStateProcessResponse(t *testing.T) {
 	t.Parallel()
 
 	t.Run("processes text content", func(t *testing.T) {
@@ -1094,10 +1094,10 @@ func TestStreamStateProcessResponse(t *testing.T) {
 
 		tc := chunks[0].Choices[0].Delta.ToolCalls[0]
 		require.NotNil(t, tc.Extra)
-		geminiData, ok := tc.Extra[providerName]
+		geminiData, ok := tc.Extra[_PROVIDER_NAME]
 		require.True(t, ok, "expected google provider data in Extra")
 
-		sig, ok := geminiData[extraKeyThoughtSignature].(string)
+		sig, ok := geminiData[_EXTRA_KEY_THOUGHT_SIGNATURE].(string)
 		require.True(t, ok, "expected thought_signature to be a string")
 
 		// Value should be base64-encoded.
@@ -1145,7 +1145,7 @@ func TestStreamStateProcessResponse(t *testing.T) {
 	})
 }
 
-func TestStreamStateFinalChunk(t *testing.T) {
+func TestGemini_StreamStateFinalChunk(t *testing.T) {
 	t.Parallel()
 
 	t.Run("defaults to stop finish reason", func(t *testing.T) {
@@ -1156,7 +1156,7 @@ func TestStreamStateFinalChunk(t *testing.T) {
 		state.finishReason = genai.FinishReasonStop
 
 		chunk := state.finalChunk()
-		require.Equal(t, providers.FinishReasonStop, chunk.Choices[0].FinishReason)
+		require.Equal(t, providers.FINISH_REASON_STOP, chunk.Choices[0].FinishReason)
 	})
 
 	t.Run("uses tool_calls when tool calls present", func(t *testing.T) {
@@ -1170,7 +1170,7 @@ func TestStreamStateFinalChunk(t *testing.T) {
 		}
 
 		chunk := state.finalChunk()
-		require.Equal(t, providers.FinishReasonToolCalls, chunk.Choices[0].FinishReason)
+		require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, chunk.Choices[0].FinishReason)
 	})
 
 	t.Run("uses max_tokens finish reason", func(t *testing.T) {
@@ -1181,7 +1181,7 @@ func TestStreamStateFinalChunk(t *testing.T) {
 		state.finishReason = genai.FinishReasonMaxTokens
 
 		chunk := state.finalChunk()
-		require.Equal(t, providers.FinishReasonLength, chunk.Choices[0].FinishReason)
+		require.Equal(t, providers.FINISH_REASON_LENGTH, chunk.Choices[0].FinishReason)
 	})
 
 	t.Run("includes usage", func(t *testing.T) {
@@ -1197,7 +1197,7 @@ func TestStreamStateFinalChunk(t *testing.T) {
 	})
 }
 
-func TestConvertParams(t *testing.T) {
+func TestGemini_ConvertParams(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("test-key"))
@@ -1208,13 +1208,13 @@ func TestConvertParams(t *testing.T) {
 
 		_, cfg := provider.convertParams(providers.CompletionParams{
 			Model:    "gemini-2.0-flash",
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "hi"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("hi")}},
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSON,
+				Type: _RESPONSE_FORMAT_JSON,
 			},
 		})
 
-		require.Equal(t, responseMIMETypeJSON, cfg.ResponseMIMEType)
+		require.Equal(t, _RESPONSE_MIME_TYPE_JSON, cfg.ResponseMIMEType)
 		require.Nil(t, cfg.ResponseJsonSchema)
 	})
 
@@ -1232,9 +1232,9 @@ func TestConvertParams(t *testing.T) {
 
 		_, cfg := provider.convertParams(providers.CompletionParams{
 			Model:    "gemini-2.0-flash",
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "hi"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("hi")}},
 			ResponseFormat: &providers.ResponseFormat{
-				Type: responseFormatJSONSchema,
+				Type: _RESPONSE_FORMAT_JSON_SCHEMA,
 				JSONSchema: &providers.JSONSchema{
 					Name:   "city_info",
 					Schema: schema,
@@ -1242,7 +1242,7 @@ func TestConvertParams(t *testing.T) {
 			},
 		})
 
-		require.Equal(t, responseMIMETypeJSON, cfg.ResponseMIMEType)
+		require.Equal(t, _RESPONSE_MIME_TYPE_JSON, cfg.ResponseMIMEType)
 		require.Equal(t, schema, cfg.ResponseJsonSchema)
 	})
 
@@ -1251,7 +1251,7 @@ func TestConvertParams(t *testing.T) {
 
 		_, cfg := provider.convertParams(providers.CompletionParams{
 			Model:    "gemini-2.0-flash",
-			Messages: []providers.Message{{Role: providers.RoleUser, Content: "hi"}},
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("hi")}},
 		})
 
 		require.Empty(t, cfg.ResponseMIMEType)
@@ -1259,7 +1259,7 @@ func TestConvertParams(t *testing.T) {
 	})
 }
 
-func TestConvertResponse(t *testing.T) {
+func TestGemini_ConvertResponse(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts text response", func(t *testing.T) {
@@ -1280,12 +1280,12 @@ func TestConvertResponse(t *testing.T) {
 
 		result, err := convertResponse(resp, "gemini-1.5-flash")
 		require.NoError(t, err)
-		require.Equal(t, objectChatCompletion, result.Object)
+		require.Equal(t, _OBJECT_CHAT_COMPLETION, result.Object)
 		require.Equal(t, "gemini-1.5-flash", result.Model)
 		require.Len(t, result.Choices, 1)
 		require.Equal(t, "Hello World", result.Choices[0].Message.ContentString())
-		require.Equal(t, providers.RoleAssistant, result.Choices[0].Message.Role)
-		require.Equal(t, providers.FinishReasonStop, result.Choices[0].FinishReason)
+		require.Equal(t, providers.ROLE_ASSISTANT, result.Choices[0].Message.Role)
+		require.Equal(t, providers.FINISH_REASON_STOP, result.Choices[0].FinishReason)
 		require.NotNil(t, result.Usage)
 		require.Equal(t, 10, result.Usage.PromptTokens)
 		require.Equal(t, 5, result.Usage.CompletionTokens)
@@ -1313,7 +1313,7 @@ func TestConvertResponse(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result.Choices[0].Message.ToolCalls, 1)
 		require.Equal(t, "get_weather", result.Choices[0].Message.ToolCalls[0].Function.Name)
-		require.Equal(t, providers.FinishReasonToolCalls, result.Choices[0].FinishReason)
+		require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, result.Choices[0].FinishReason)
 	})
 
 	t.Run("captures thought signature on function call", func(t *testing.T) {
@@ -1340,8 +1340,8 @@ func TestConvertResponse(t *testing.T) {
 
 		tc := result.Choices[0].Message.ToolCalls[0]
 		require.NotNil(t, tc.Extra)
-		geminiData := tc.Extra[providerName]
-		sig, ok := geminiData[extraKeyThoughtSignature].(string)
+		geminiData := tc.Extra[_PROVIDER_NAME]
+		sig, ok := geminiData[_EXTRA_KEY_THOUGHT_SIGNATURE].(string)
 		require.True(t, ok)
 
 		decoded, err := base64.StdEncoding.DecodeString(sig)
@@ -1372,7 +1372,7 @@ func TestConvertResponse(t *testing.T) {
 	})
 }
 
-func TestApplyResponseFormat(t *testing.T) {
+func TestGemini_ApplyResponseFormat(t *testing.T) {
 	t.Parallel()
 
 	t.Run("json_object sets mime type", func(t *testing.T) {
@@ -1436,10 +1436,10 @@ func TestApplyResponseFormat(t *testing.T) {
 
 // Integration tests - only run if API key is available.
 
-func TestIntegrationCompletion(t *testing.T) {
+func TestGemini_IntegrationCompletion(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 
@@ -1448,7 +1448,7 @@ func TestIntegrationCompletion(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.SimpleMessages(),
 	}
 
@@ -1456,18 +1456,18 @@ func TestIntegrationCompletion(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotEmpty(t, resp.ID)
-	require.Equal(t, objectChatCompletion, resp.Object)
+	require.Equal(t, _OBJECT_CHAT_COMPLETION, resp.Object)
 	require.Len(t, resp.Choices, 1)
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
-	require.Equal(t, providers.RoleAssistant, resp.Choices[0].Message.Role)
+	require.Equal(t, providers.ROLE_ASSISTANT, resp.Choices[0].Message.Role)
 	require.NotNil(t, resp.Usage)
 	require.Greater(t, resp.Usage.TotalTokens, 0)
 }
 
-func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
+func TestGemini_IntegrationCompletionWithSystemMessage(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 
@@ -1476,7 +1476,7 @@ func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.MessagesWithSystem(),
 	}
 
@@ -1488,10 +1488,10 @@ func TestIntegrationCompletionWithSystemMessage(t *testing.T) {
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
 }
 
-func TestIntegrationCompletionStream(t *testing.T) {
+func TestGemini_IntegrationCompletionStream(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 
@@ -1500,7 +1500,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.SimpleMessages(),
 		Stream:   true,
 	}
@@ -1513,7 +1513,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 	for chunk, streamErr := range chunks {
 		require.NoError(t, streamErr)
 		chunkCount++
-		require.Equal(t, objectChatCompletionChunk, chunk.Object)
+		require.Equal(t, _OBJECT_CHAT_COMPLETION_CHUNK, chunk.Object)
 		if len(chunk.Choices) > 0 {
 			content.WriteString(chunk.Choices[0].Delta.Content)
 		}
@@ -1523,7 +1523,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 	require.NotEmpty(t, content.String())
 }
 
-func TestCompletionStreamContextCancellation(t *testing.T) {
+func TestGemini_CompletionStreamContextCancellation(t *testing.T) {
 	requestStarted := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -1547,7 +1547,7 @@ func TestCompletionStreamContextCancellation(t *testing.T) {
 	provider := &Provider{client: client}
 	params := providers.CompletionParams{
 		Model:    "test-model",
-		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -1573,7 +1573,7 @@ func TestCompletionStreamContextCancellation(t *testing.T) {
 	require.Equal(t, 1, errorCount)
 }
 
-func TestCompletionStreamEarlyStopClosesRequest(t *testing.T) {
+func TestGemini_CompletionStreamEarlyStopClosesRequest(t *testing.T) {
 	requestDone := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -1599,7 +1599,7 @@ func TestCompletionStreamEarlyStopClosesRequest(t *testing.T) {
 	provider := &Provider{client: client}
 	params := providers.CompletionParams{
 		Model:    "test-model",
-		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 
 	for _, streamErr := range provider.CompletionStream(t.Context(), params) {
@@ -1614,10 +1614,10 @@ func TestCompletionStreamEarlyStopClosesRequest(t *testing.T) {
 	}
 }
 
-func TestIntegrationCompletionConversation(t *testing.T) {
+func TestGemini_IntegrationCompletionConversation(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 
@@ -1626,7 +1626,7 @@ func TestIntegrationCompletionConversation(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.CompletionParams{
-		Model:    testutil.TestModel(providerName),
+		Model:    testutil.TestModel(_PROVIDER_NAME),
 		Messages: testutil.ConversationMessages(),
 	}
 
@@ -1636,15 +1636,14 @@ func TestIntegrationCompletionConversation(t *testing.T) {
 	require.NotEmpty(t, resp.ID)
 	require.Len(t, resp.Choices, 1)
 
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content")
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, strings.ToLower(contentStr), "alice")
 }
 
-func TestIntegrationEmbedding(t *testing.T) {
+func TestGemini_IntegrationEmbedding(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 
@@ -1653,23 +1652,23 @@ func TestIntegrationEmbedding(t *testing.T) {
 
 	ctx := context.Background()
 	params := providers.EmbeddingParams{
-		Model: testutil.EmbeddingModel(providerName),
+		Model: testutil.EmbeddingModel(_PROVIDER_NAME),
 		Input: "Hello world",
 	}
 
 	resp, err := provider.Embedding(ctx, params)
 	require.NoError(t, err)
 
-	require.Equal(t, objectList, resp.Object)
+	require.Equal(t, _OBJECT_LIST, resp.Object)
 	require.NotEmpty(t, resp.Data)
 	require.NotEmpty(t, resp.Data[0].Embedding)
-	require.Equal(t, objectEmbedding, resp.Data[0].Object)
+	require.Equal(t, _OBJECT_EMBEDDING, resp.Data[0].Object)
 }
 
-func TestIntegrationListModels(t *testing.T) {
+func TestGemini_IntegrationListModels(t *testing.T) {
 	t.Parallel()
 
-	if testutil.SkipIfNoAPIKey(providerName) {
+	if testutil.SkipIfNoAPIKey(_PROVIDER_NAME) {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 
@@ -1680,13 +1679,13 @@ func TestIntegrationListModels(t *testing.T) {
 	resp, err := provider.ListModels(ctx)
 	require.NoError(t, err)
 
-	require.Equal(t, objectList, resp.Object)
+	require.Equal(t, _OBJECT_LIST, resp.Object)
 	require.NotEmpty(t, resp.Data)
 
 	// Verify model structure.
 	for _, model := range resp.Data {
 		require.NotEmpty(t, model.ID)
-		require.Equal(t, objectModel, model.Object)
+		require.Equal(t, _OBJECT_MODEL, model.Object)
 		require.Equal(t, "google", model.OwnedBy)
 	}
 }
