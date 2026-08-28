@@ -430,12 +430,7 @@ func (s *streamState) processResponse(resp *genai.GenerateContentResponse) ([]pr
 	var result []providers.ChatCompletionChunk
 
 	if resp.UsageMetadata != nil {
-		s.usage = &providers.Usage{
-			PromptTokens:     int(resp.UsageMetadata.PromptTokenCount),
-			CompletionTokens: int(resp.UsageMetadata.CandidatesTokenCount),
-			TotalTokens:      int(resp.UsageMetadata.PromptTokenCount + resp.UsageMetadata.CandidatesTokenCount),
-			ReasoningTokens:  int(resp.UsageMetadata.ThoughtsTokenCount),
-		}
+		s.usage = convertUsage(resp.UsageMetadata)
 	}
 
 	if len(resp.Candidates) == 0 {
@@ -784,15 +779,53 @@ func convertResponse(resp *genai.GenerateContentResponse, model string) (*provid
 	}
 
 	if resp.UsageMetadata != nil {
-		completion.Usage = &providers.Usage{
-			PromptTokens:     int(resp.UsageMetadata.PromptTokenCount),
-			CompletionTokens: int(resp.UsageMetadata.CandidatesTokenCount),
-			TotalTokens:      int(resp.UsageMetadata.PromptTokenCount + resp.UsageMetadata.CandidatesTokenCount),
-			ReasoningTokens:  int(resp.UsageMetadata.ThoughtsTokenCount),
-		}
+		completion.Usage = convertUsage(resp.UsageMetadata)
 	}
 
 	return completion, nil
+}
+
+func convertUsage(metadata *genai.GenerateContentResponseUsageMetadata) *providers.Usage {
+	totalTokens := int(metadata.TotalTokenCount)
+	if totalTokens == 0 {
+		totalTokens = int(metadata.PromptTokenCount + metadata.CandidatesTokenCount + metadata.ToolUsePromptTokenCount + metadata.ThoughtsTokenCount)
+	}
+	result := &providers.Usage{
+		TotalTokens:      totalTokens,
+		PromptTokens:     int(metadata.PromptTokenCount),
+		CompletionTokens: int(metadata.CandidatesTokenCount),
+	}
+	promptAudioTokens := 0
+	for _, details := range metadata.PromptTokensDetails {
+		if details != nil && details.Modality == genai.MediaModalityAudio {
+			promptAudioTokens += int(details.TokenCount)
+		}
+	}
+	if metadata.CachedContentTokenCount > 0 || promptAudioTokens > 0 {
+		result.PromptTokensDetails = &providers.PromptTokensDetails{}
+		if metadata.CachedContentTokenCount > 0 {
+			result.PromptTokensDetails.CachedTokens = new(int(metadata.CachedContentTokenCount))
+		}
+		if promptAudioTokens > 0 {
+			result.PromptTokensDetails.AudioTokens = &promptAudioTokens
+		}
+	}
+	completionAudioTokens := 0
+	for _, details := range metadata.CandidatesTokensDetails {
+		if details != nil && details.Modality == genai.MediaModalityAudio {
+			completionAudioTokens += int(details.TokenCount)
+		}
+	}
+	if metadata.ThoughtsTokenCount > 0 || completionAudioTokens > 0 {
+		result.CompletionTokenDetails = &providers.CompletionTokensDetails{}
+		if metadata.ThoughtsTokenCount > 0 {
+			result.CompletionTokenDetails.ReasoningTokens = new(int(metadata.ThoughtsTokenCount))
+		}
+		if completionAudioTokens > 0 {
+			result.CompletionTokenDetails.AudioTokens = &completionAudioTokens
+		}
+	}
+	return result
 }
 
 // convertToolChoice converts providers tool choice to Gemini format.

@@ -2,17 +2,49 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	openaisdk "github.com/openai/openai-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/humbornjo/llm/config"
 	"github.com/humbornjo/llm/errors"
 	"github.com/humbornjo/llm/providers"
 )
+
+func TestOpenAI_ConvertUsage(t *testing.T) {
+	t.Parallel()
+
+	var usage openaisdk.CompletionUsage
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"prompt_tokens": 12,
+		"completion_tokens": 8,
+		"total_tokens": 20,
+		"prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 4},
+		"completion_tokens_details": {
+			"accepted_prediction_tokens": 2,
+			"audio_tokens": 1,
+			"reasoning_tokens": 3,
+			"rejected_prediction_tokens": 0
+		}
+	}`), &usage))
+
+	result := convertUsage(usage)
+	require.Equal(t, 12, result.PromptTokens)
+	require.Equal(t, 8, result.CompletionTokens)
+	require.Equal(t, 20, result.TotalTokens)
+	require.Equal(t, 0, *result.PromptTokensDetails.AudioTokens)
+	require.Equal(t, 4, *result.PromptTokensDetails.CachedTokens)
+	require.Nil(t, result.PromptTokensDetails.CacheWriteTokens)
+	require.Equal(t, 2, *result.CompletionTokenDetails.AcceptedPredictionTokens)
+	require.Equal(t, 1, *result.CompletionTokenDetails.AudioTokens)
+	require.Equal(t, 3, *result.CompletionTokenDetails.ReasoningTokens)
+	require.Equal(t, 0, *result.CompletionTokenDetails.RejectedPredictionTokens)
+}
 
 func TestOpenAI_NewCompatible(t *testing.T) {
 	// Note: Not using t.Parallel() here because child test uses t.Setenv.

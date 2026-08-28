@@ -10,16 +10,13 @@ import (
 
 // ContentFromString creates scalar text message content.
 func ContentFromString(text string) Content {
-	return new(ContentStr(text))
+	return new(ContentString(text))
 }
 
-// ContentFromParts creates multimodal message content. The first argument is
-// retained as the first part, followed by the variadic parts.
-func ContentFromParts(part ContentPart, parts ...ContentPart) Content {
-	all := make([]ContentPart, 0, len(parts)+1)
-	all = append(all, part)
-	all = append(all, parts...)
-	return new(ContentParts(all))
+// ContentFromParts creates multimodal message content from the given
+// parts, which must not be empty.
+func ContentFromParts(parts ...ContentPart) Content {
+	return new(ContentParts(parts))
 }
 
 // Content is either scalar text or a non-empty list of typed content parts.
@@ -27,15 +24,31 @@ type Content isContent
 
 type isContent interface {
 	isContent()
+	GetType() ContentType
 }
 
-// ContentStr is scalar text message content.
-type ContentStr string
+type ContentType string
 
-func (*ContentStr) isContent() {}
+const (
+	CONTENT_TYPE_STRING ContentType = "string"
+	CONTENT_TYPE_PARTS  ContentType = "content_parts"
+)
+
+// ContentString is scalar text message content.
+type ContentString string
+
+func (*ContentString) GetType() ContentType {
+	return CONTENT_TYPE_STRING
+}
+
+func (*ContentString) isContent() {}
 
 // ContentParts is multimodal message content.
 type ContentParts []ContentPart
+
+func (*ContentParts) GetType() ContentType {
+	return CONTENT_TYPE_PARTS
+}
 
 func (*ContentParts) isContent() {}
 
@@ -330,7 +343,7 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 		if err := unmarshalStrict(contentRaw, &text); err != nil {
 			return fmt.Errorf("message content is invalid: %w", err)
 		}
-		content = new(ContentStr(text))
+		content = new(ContentString(text))
 	case '[':
 		var parts ContentParts
 		if err := json.Unmarshal(contentRaw, &parts); err != nil {

@@ -374,10 +374,24 @@ type ToolChoiceFunction struct {
 
 // Usage represents token usage information.
 type Usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
-	ReasoningTokens  int `json:"reasoning_tokens,omitempty"`
+	TotalTokens            int                      `json:"total_tokens"`
+	PromptTokens           int                      `json:"prompt_tokens"`
+	PromptTokensDetails    *PromptTokensDetails     `json:"prompt_tokens_details,omitempty"`
+	CompletionTokens       int                      `json:"completion_tokens"`
+	CompletionTokenDetails *CompletionTokensDetails `json:"completion_tokens_details,omitempty"`
+}
+
+type PromptTokensDetails struct {
+	AudioTokens      *int `json:"audio_tokens,omitempty"`
+	CachedTokens     *int `json:"cached_tokens,omitempty"`
+	CacheWriteTokens *int `json:"cache_write_tokens,omitempty"`
+}
+
+type CompletionTokensDetails struct {
+	AcceptedPredictionTokens *int `json:"accepted_prediction_tokens,omitempty"`
+	AudioTokens              *int `json:"audio_tokens,omitempty"`
+	ReasoningTokens          *int `json:"reasoning_tokens,omitempty"`
+	RejectedPredictionTokens *int `json:"rejected_prediction_tokens,omitempty"`
 }
 
 // ContentParts extracts content parts from a message.
@@ -397,7 +411,7 @@ func (m *Message) ContentString() string {
 	if m == nil || m.Content == nil {
 		return ""
 	}
-	text, ok := m.Content.(*ContentStr)
+	text, ok := m.Content.(*ContentString)
 	if !ok || text == nil {
 		return ""
 	}

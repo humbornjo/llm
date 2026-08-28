@@ -98,6 +98,8 @@ type streamState struct {
 	toolCalls      []providers.ToolCall
 	currentToolIdx int
 	inputUsage     int64
+	cachedUsage    int64
+	cacheWrite     int64
 }
 
 // New creates a new Anthropic provider.
@@ -361,8 +363,12 @@ func (s *streamState) handleMessageDelta(event anthropic.MessageDeltaEvent) prov
 	chunk.Choices[0].FinishReason = finishReason
 	chunk.Usage = &providers.Usage{
 		PromptTokens:     int(s.inputUsage),
-		CompletionTokens: int(event.Usage.OutputTokens),
 		TotalTokens:      int(s.inputUsage + event.Usage.OutputTokens),
+		CompletionTokens: int(event.Usage.OutputTokens),
+		PromptTokensDetails: &providers.PromptTokensDetails{
+			CachedTokens:     new(int(s.cachedUsage)),
+			CacheWriteTokens: new(int(s.cacheWrite)),
+		},
 	}
 	return chunk
 }
@@ -372,6 +378,8 @@ func (s *streamState) handleMessageStart(event anthropic.MessageStartEvent) prov
 	s.messageID = event.Message.ID
 	s.model = string(event.Message.Model)
 	s.inputUsage = event.Message.Usage.InputTokens
+	s.cachedUsage = event.Message.Usage.CacheReadInputTokens
+	s.cacheWrite = event.Message.Usage.CacheCreationInputTokens
 
 	return s.chunk(providers.ChunkDelta{Role: providers.ROLE_ASSISTANT})
 }
@@ -562,6 +570,10 @@ func convertResponse(resp *anthropic.Message) *providers.ChatCompletion {
 			PromptTokens:     int(resp.Usage.InputTokens),
 			CompletionTokens: int(resp.Usage.OutputTokens),
 			TotalTokens:      int(resp.Usage.InputTokens + resp.Usage.OutputTokens),
+			PromptTokensDetails: &providers.PromptTokensDetails{
+				CachedTokens:     new(int(resp.Usage.CacheReadInputTokens)),
+				CacheWriteTokens: new(int(resp.Usage.CacheCreationInputTokens)),
+			},
 		},
 	}
 }
