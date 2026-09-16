@@ -196,7 +196,11 @@ func TestGemini_ConvertMessages(t *testing.T) {
 
 		messages := []providers.Message{
 			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
-			{Role: providers.ROLE_TOOL, Content: providers.ContentFromString(`{"temperature": 22, "condition": "sunny"}`), Name: "get_weather"},
+			{
+				Role:    providers.ROLE_TOOL,
+				Content: providers.ContentFromString(`{"temperature": 22, "condition": "sunny"}`),
+				Name:    "get_weather",
+			},
 		}
 
 		result, _ := convertMessages(messages)
@@ -1531,13 +1535,12 @@ func TestGemini_IntegrationCompletionStream(t *testing.T) {
 		Stream:   true,
 	}
 
-	chunks := provider.CompletionStream(ctx, params)
+	chunks, errs := provider.CompletionStream(ctx, params)
 
 	var content strings.Builder
 	chunkCount := 0
 
-	for chunk, streamErr := range chunks {
-		require.NoError(t, streamErr)
+	for chunk := range chunks {
 		chunkCount++
 		require.Equal(t, _OBJECT_CHAT_COMPLETION_CHUNK, chunk.Object)
 		if len(chunk.Choices) > 0 {
@@ -1545,6 +1548,7 @@ func TestGemini_IntegrationCompletionStream(t *testing.T) {
 		}
 	}
 
+	require.NoError(t, <-errs)
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
 }
@@ -1585,27 +1589,23 @@ func TestGemini_CompletionStreamContextCancellation(t *testing.T) {
 		}
 	}()
 
-	var (
-		got        error
-		errorCount int
-	)
-	for _, streamErr := range provider.CompletionStream(ctx, params) {
-		if streamErr != nil {
-			errorCount++
-			got = streamErr
-		}
+	chunks, errs := provider.CompletionStream(ctx, params)
+	for range chunks {
 	}
-	require.ErrorIs(t, got, context.Canceled)
-	require.Equal(t, 1, errorCount)
+	require.ErrorIs(t, <-errs, context.Canceled)
 }
 
-func TestGemini_CompletionStreamEarlyStopClosesRequest(t *testing.T) {
+func TestGemini_CompletionStreamCancellationClosesRequest(t *testing.T) {
 	requestDone := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		_, _ = w.Write([]byte(`data: {"candidates":[{"content":{"parts":[{"text":"hello"}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":1,"candidatesTokenCount":1,"totalTokenCount":2}}
+		_, _ = w.Write(
+			[]byte(
+				`data: {"candidates":[{"content":{"parts":[{"text":"hello"}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":1,"candidatesTokenCount":1,"totalTokenCount":2}}
 
-`))
+`,
+			),
+		)
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
@@ -1628,16 +1628,22 @@ func TestGemini_CompletionStreamEarlyStopClosesRequest(t *testing.T) {
 		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 
-	for _, streamErr := range provider.CompletionStream(t.Context(), params) {
-		require.NoError(t, streamErr)
-		break
-	}
+	ctx, cancel := context.WithCancel(t.Context())
+	chunks, errs := provider.CompletionStream(ctx, params)
+
+	// Receive the first chunk, then cancel the stream.
+	first, ok := <-chunks
+	require.True(t, ok)
+	require.Equal(t, _OBJECT_CHAT_COMPLETION_CHUNK, first.Object)
+	cancel()
 
 	select {
 	case <-requestDone:
 	case <-time.After(time.Second):
-		t.Fatal("request remained active after iteration stopped")
+		t.Fatal("request remained active after cancellation")
 	}
+
+	require.ErrorIs(t, <-errs, context.Canceled)
 }
 
 func TestGemini_IntegrationCompletionConversation(t *testing.T) {

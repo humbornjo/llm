@@ -4,7 +4,6 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"iter"
 )
 
 // Finish reasons.
@@ -80,12 +79,12 @@ type Provider interface {
 	// Completion performs a chat completion request.
 	Completion(ctx context.Context, params CompletionParams) (*ChatCompletion, error)
 
-	// CompletionStream returns a lazy, single-consumer sequence of chat
-	// completion chunks and terminal stream errors. The context remains owned by
-	// the caller and must stay valid until iteration ends. Canceling it terminates
-	// the provider request and yields its context error. Stopping iteration early
-	// terminates the request without yielding an additional error.
-	CompletionStream(ctx context.Context, params CompletionParams) iter.Seq2[ChatCompletionChunk, error]
+	// CompletionStream performs a streaming chat completion request. It
+	// returns a channel of chunks and a buffered error channel that receives
+	// at most one terminal error; both channels are closed when the stream
+	// ends. Cancel ctx to terminate the stream early; the error channel then
+	// receives ctx.Err().
+	CompletionStream(ctx context.Context, params CompletionParams) (<-chan ChatCompletionChunk, <-chan error)
 }
 
 // ProviderData holds provider-specific metadata keyed by field name.

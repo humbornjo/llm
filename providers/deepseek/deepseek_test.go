@@ -405,9 +405,10 @@ func TestDeepSeek_CompletionStreamSendsMaxTokensOnWire(t *testing.T) {
 		Stream:    true,
 	}
 
-	for _, streamErr := range provider.CompletionStream(context.Background(), params) {
-		require.NoError(t, streamErr)
+	chunks, errs := provider.CompletionStream(context.Background(), params)
+	for range chunks {
 	}
+	require.NoError(t, <-errs)
 
 	body := capturedBody()
 
@@ -488,13 +489,12 @@ func TestDeepSeek_IntegrationCompletionStream(t *testing.T) {
 		Stream:   true,
 	}
 
-	chunks := provider.CompletionStream(ctx, params)
+	chunks, errs := provider.CompletionStream(ctx, params)
 
 	var content strings.Builder
 	chunkCount := 0
 
-	for chunk, streamErr := range chunks {
-		require.NoError(t, streamErr)
+	for chunk := range chunks {
 		chunkCount++
 		require.Equal(t, _OBJECT_CHAT_COMPLETION_CHUNK, chunk.Object)
 		if len(chunk.Choices) > 0 {
@@ -502,6 +502,7 @@ func TestDeepSeek_IntegrationCompletionStream(t *testing.T) {
 		}
 	}
 
+	require.NoError(t, <-errs)
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
 }

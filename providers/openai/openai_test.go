@@ -489,9 +489,10 @@ func TestOpenAI_CompletionStreamSendsMaxCompletionTokensOnWire(t *testing.T) {
 		Stream:    true,
 	}
 
-	for _, streamErr := range provider.CompletionStream(context.Background(), params) {
-		require.NoError(t, streamErr)
+	chunks, errs := provider.CompletionStream(context.Background(), params)
+	for range chunks {
 	}
+	require.NoError(t, <-errs)
 
 	body := capturedBody()
 
@@ -548,13 +549,12 @@ func TestOpenAI_IntegrationCompletionStream(t *testing.T) {
 		Stream:   true,
 	}
 
-	chunks := provider.CompletionStream(ctx, params)
+	chunks, errs := provider.CompletionStream(ctx, params)
 
 	var content strings.Builder
 	chunkCount := 0
 
-	for chunk, streamErr := range chunks {
-		require.NoError(t, streamErr)
+	for chunk := range chunks {
 		chunkCount++
 		require.Equal(t, "chat.completion.chunk", chunk.Object)
 		if len(chunk.Choices) > 0 {
@@ -562,6 +562,7 @@ func TestOpenAI_IntegrationCompletionStream(t *testing.T) {
 		}
 	}
 
+	require.NoError(t, <-errs)
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
 }
@@ -614,7 +615,10 @@ func TestOpenAI_IntegrationAgentLoop(t *testing.T) {
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
-		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool.")},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool."),
+		},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -681,7 +685,10 @@ func TestOpenAI_IntegrationAgentLoopMultipleParams(t *testing.T) {
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
-		{Role: providers.ROLE_USER, Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together.")},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together."),
+		},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{

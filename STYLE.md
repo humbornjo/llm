@@ -47,9 +47,10 @@ plain code over speculative abstractions.
   before normalizing or enriching it.
 - Pass `context.Context` through network and provider calls. Do not replace a
   caller context with `context.Background()` inside reusable code.
-- Use `iter.Seq2[T, error]` for streams. Stop provider work when the consumer
-  stops iteration, and surface `ctx.Err()` when cancellation terminates a
-  stream.
+- Return `(<-chan T, <-chan error)` from provider streams. Buffer the error
+  channel for a single terminal error, send chunks with `select` against
+  `ctx.Done()` so an abandoned consumer cannot leak the producer goroutine,
+  and surface `ctx.Err()` when cancellation terminates a stream.
 - Close response bodies, streams, and goroutines on every success, error,
   cancellation, and early-consumer-exit path.
 - Use standard-library functionality before introducing a dependency.

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
-	"iter"
 	"log"
 	"strings"
 	"time"
@@ -181,56 +180,64 @@ func (p *Provider) Completion(
 func (p *Provider) CompletionStream(
 	ctx context.Context,
 	params providers.CompletionParams,
-) iter.Seq2[providers.ChatCompletionChunk, error] {
-	return func(yield func(providers.ChatCompletionChunk, error) bool) {
-		streamCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+) (<-chan providers.ChatCompletionChunk, <-chan error) {
+	chunks := make(chan providers.ChatCompletionChunk)
+	errs := make(chan error, 1)
+
+	go func() {
+		defer close(chunks)
+		defer close(errs)
 
 		contents, cfg := p.convertParams(params)
 		state, err := newStreamState(params.Model)
 		if err != nil {
-			yield(providers.ChatCompletionChunk{}, err)
+			errs <- err
 			return
 		}
 
-		if err := streamCtx.Err(); err != nil {
-			yield(providers.ChatCompletionChunk{}, err)
+		if err := ctx.Err(); err != nil {
+			errs <- err
 			return
 		}
 
-		for resp, err := range p.client.Models.GenerateContentStream(streamCtx, params.Model, contents, cfg) {
-			if ctxErr := streamCtx.Err(); ctxErr != nil {
-				yield(providers.ChatCompletionChunk{}, ctxErr)
+		for resp, err := range p.client.Models.GenerateContentStream(ctx, params.Model, contents, cfg) {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				errs <- ctxErr
 				return
 			}
 			if err != nil {
-				yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
+				errs <- p.ConvertError(err)
 				return
 			}
 
 			responseChunks, err := state.processResponse(resp)
 			if err != nil {
-				yield(providers.ChatCompletionChunk{}, err)
+				errs <- err
 				return
 			}
 
 			for _, chunk := range responseChunks {
-				if !yield(chunk, nil) {
+				if !sendChunk(ctx, chunks, chunk) {
+					errs <- ctx.Err()
 					return
 				}
 			}
 		}
 
-		if err := streamCtx.Err(); err != nil {
-			yield(providers.ChatCompletionChunk{}, err)
+		if err := ctx.Err(); err != nil {
+			errs <- err
 			return
 		}
 
 		// Emit final chunk with finish reason and usage.
 		if finalChunk := state.finalChunk(); finalChunk != nil {
-			yield(*finalChunk, nil)
+			if !sendChunk(ctx, chunks, *finalChunk) {
+				errs <- ctx.Err()
+			}
 		}
-	}
+	}()
+
+	return chunks, errs
 }
 
 // ConvertError converts a Gemini SDK error to a unified error type.
@@ -788,7 +795,9 @@ func convertResponse(resp *genai.GenerateContentResponse, model string) (*provid
 func convertUsage(metadata *genai.GenerateContentResponseUsageMetadata) *providers.Usage {
 	totalTokens := int(metadata.TotalTokenCount)
 	if totalTokens == 0 {
-		totalTokens = int(metadata.PromptTokenCount + metadata.CandidatesTokenCount + metadata.ToolUsePromptTokenCount + metadata.ThoughtsTokenCount)
+		totalTokens = int(
+			metadata.PromptTokenCount + metadata.CandidatesTokenCount + metadata.ToolUsePromptTokenCount + metadata.ThoughtsTokenCount,
+		)
 	}
 	result := &providers.Usage{
 		TotalTokens:      totalTokens,
@@ -940,6 +949,22 @@ func generateID(prefix string) (string, error) {
 		return "", fmt.Errorf("generating ID: %w", err)
 	}
 	return prefix + hex.EncodeToString(b), nil
+}
+
+// sendChunk delivers a chunk on the chunks channel. It returns false if the
+// context was canceled while waiting, meaning the consumer has moved on and
+// the stream should terminate.
+func sendChunk(
+	ctx context.Context,
+	chunks chan<- providers.ChatCompletionChunk,
+	chunk providers.ChatCompletionChunk,
+) bool {
+	select {
+	case chunks <- chunk:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 // setProviderExtra safely sets a key in a ToolCall's provider-specific Extra data.
