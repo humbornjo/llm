@@ -1,9 +1,3 @@
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/mozilla-ai/any-llm/refs/heads/main/docs/public/images/any-llm-logo-mark.png" width="20%" alt="Project logo"/>
-  </picture>
-</p>
-
 <div align="center">
 
 # llm
@@ -11,14 +5,11 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/humbornjo/llm.svg)](https://pkg.go.dev/github.com/humbornjo/llm)
 [![Go Report Card](https://goreportcard.com/badge/github.com/humbornjo/llm)](https://goreportcard.com/report/github.com/humbornjo/llm)
 ![Go 1.26+](https://img.shields.io/badge/go-1.26%2B-blue.svg)
-<a href="https://discord.gg/4gf3zXrQUc">
-    <img src="https://img.shields.io/static/v1?label=Chat%20on&message=Discord&color=blue&logo=Discord&style=flat-square" alt="Discord">
-</a>
 
 **Communicate with any LLM provider using a single, unified interface.**
-Switch between OpenAI, Anthropic, Mistral, Ollama, and more without changing your code.
+Switch between OpenAI, Anthropic, Gemini, and more without changing your code.
 
-[Python SDK](https://github.com/mozilla-ai/any-llm) | [Documentation](https://mozilla-ai.github.io/any-llm/) | [Platform (Beta)](https://any-llm.ai/)
+[Documentation](docs/quickstart.md)
 
 </div>
 
@@ -61,14 +52,14 @@ func main() {
     response, err := provider.Completion(ctx, llm.CompletionParams{
         Model: "gpt-4o-mini",
         Messages: []llm.Message{
-            {Role: llm.ROLE_USER, Content: "Hello!"},
+            {Role: llm.ROLE_USER, Content: llm.ContentFromString("Hello!")},
         },
     })
     if err != nil {
         log.Fatal(err)
     }
 
-    fmt.Println(response.Choices[0].Message.Content)
+    fmt.Println(response.Choices[0].Message.ContentString())
 }
 ```
 
@@ -100,8 +91,9 @@ Set environment variables for your chosen providers:
 ```bash
 export OPENAI_API_KEY="your-key-here"
 export ANTHROPIC_API_KEY="your-key-here"
-export MISTRAL_API_KEY="your-key-here"
-# ... etc
+export GEMINI_API_KEY="your-key-here"
+export DEEPSEEK_API_KEY="your-key-here"
+export MOONSHOT_API_KEY="your-key-here"
 ```
 
 Alternatively, pass API keys directly in your code:
@@ -109,33 +101,6 @@ Alternatively, pass API keys directly in your code:
 ```go
 provider, err := openai.New(llm.WithAPIKey("your-key-here"))
 ```
-
-## any-llm-gateway
-
-any-llm-gateway is an **optional** FastAPI-based proxy server that adds enterprise-grade features on top of the core library:
-
-- **Budget Management** - Enforce spending limits with automatic daily, weekly, or monthly resets
-- **API Key Management** - Issue, revoke, and monitor virtual API keys without exposing provider credentials
-- **Usage Analytics** - Track every request with full token counts, costs, and metadata
-- **Multi-tenant Support** - Manage access and budgets across users and teams
-
-The gateway sits between your applications and LLM providers, exposing an OpenAI-compatible API that works with any supported provider.
-
-### Quick Start
-
-```bash
-docker run \
-  -e GATEWAY_MASTER_KEY="your-secure-master-key" \
-  -e OPENAI_API_KEY="your-api-key" \
-  -p 8000:8000 \
-  ghcr.io/mozilla-ai/any-llm/gateway:latest
-```
-
-> **Note:** You can use a specific release version instead of `latest` (e.g., `1.2.0`). See [available versions](https://github.com/orgs/mozilla-ai/packages/container/package/any-llm%2Fgateway).
-
-### Managed Platform (Beta)
-
-Prefer a hosted experience? The [any-llm platform](https://any-llm.ai/) provides a managed control plane for keys, usage tracking, and cost visibility across providers, while still building on the same `any-llm` interfaces.
 
 ## Usage
 
@@ -161,14 +126,14 @@ ctx := context.Background()
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Hello!"},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Hello!")},
     },
 })
 if err != nil {
     log.Fatal(err)
 }
 
-fmt.Println(response.Choices[0].Message.Content)
+fmt.Println(response.Choices[0].Message.ContentString())
 ```
 
 Provider instances are reusable and recommended for production applications.
@@ -179,7 +144,7 @@ Provider instances are reusable and recommended for production applications.
 chunks, errs := provider.CompletionStream(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Write a short poem about Go."},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Write a short poem about Go.")},
     },
 })
 
@@ -200,7 +165,7 @@ if err := <-errs; err != nil {
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "What's the weather in Paris?"},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("What's the weather in Paris?")},
     },
     Tools: []llm.ToolInfo{
         {
@@ -246,7 +211,7 @@ For models that support extended thinking (like Claude):
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "claude-sonnet-4-20250514",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Solve this step by step: What is 15% of 80?"},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Solve this step by step: What is 15% of 80?")},
     },
     ReasoningEffort: llm.REASONING_EFFORT_MEDIUM,
 })
@@ -254,7 +219,7 @@ response, err := provider.Completion(ctx, llm.CompletionParams{
 if response.Choices[0].Message.Reasoning != nil {
     fmt.Println("Thinking:", response.Choices[0].Message.Reasoning.Content)
 }
-fmt.Println("Answer:", response.Choices[0].Message.Content)
+fmt.Println("Answer:", response.Choices[0].Message.ContentString())
 ```
 
 ### Embeddings
@@ -274,44 +239,6 @@ provider, _ := openai.New()
 models, err := provider.ListModels(ctx)
 for _, model := range models.Data {
     fmt.Println(model.ID)
-}
-```
-
-### Moderation
-
-The gateway provider supports OpenAI-compatible content moderation. Use
-`errors.As` with `*llm.UnsupportedOperationError` (or `errors.Is` with
-`llm.ErrUnsupported`) to detect providers that do not support moderation.
-
-```go
-import (
-    stderrors "errors"
-
-    "github.com/humbornjo/llm"
-    "github.com/humbornjo/llm/config"
-    "github.com/humbornjo/llm/providers/gateway"
-)
-
-provider, err := gateway.New(config.WithBaseURL("https://gw.example.com"))
-if err != nil {
-    log.Fatal(err)
-}
-
-resp, err := provider.Moderation(ctx, llm.ModerationParams{
-    Model: "openai:omni-moderation-latest",
-    Input: "I want to hurt someone",
-})
-if err != nil {
-    var unsup *llm.UnsupportedOperationError
-    if stderrors.As(err, &unsup) {
-        // Provider does not support moderation; pick another model.
-        log.Printf("%s cannot do %s", unsup.Provider, unsup.Operation)
-        return
-    }
-    log.Fatal(err)
-}
-if resp.Results[0].Flagged {
-    // Handle flagged content.
 }
 ```
 
@@ -340,7 +267,7 @@ You can also use type assertions for more details:
 ```go
 var rateLimitErr *llm.RateLimitError
 if errors.As(err, &rateLimitErr) {
-    fmt.Printf("Rate limited by %s: %s\n", rateLimitErr.Provider, rateLimitErr.Message)
+    fmt.Printf("Rate limited by %s (retry after %ds)\n", rateLimitErr.Provider, rateLimitErr.RetryAfter)
 }
 ```
 
@@ -351,14 +278,8 @@ if errors.As(err, &rateLimitErr) {
 | Anthropic  |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
 |  DeepSeek  |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
 |   Gemini   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
-|    Groq    |      ✅      |      ✅      |      ✅ |      ❌      |      ❌       |
-|  llama.cpp |      ✅      |      ✅      |      ✅ |      ❌      |      ✅       |
-| Llamafile  |      ✅      |      ✅      |      ✅ |      ❌      |      ✅       |
-|  Mistral   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
 |  Moonshot  |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
-|   Ollama   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
 |   OpenAI   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
-|    z.ai    |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
 
 ## Why choose `llm`?
 
@@ -368,7 +289,6 @@ if errors.As(err, &rateLimitErr) {
 - **Stays framework-agnostic** so it can be used across different projects and use cases
 - **Idiomatic Go** - Follows Go conventions with proper error handling and context support
 - **Streaming support** - Channel-based streaming that's natural in Go
-- **Battle-tested** - Based on the proven [any-llm](https://github.com/mozilla-ai/any-llm) Python library
 
 ## Development
 
@@ -382,15 +302,14 @@ make build      # Verify compilation
 
 ## Documentation
 
-- **[Full Documentation](https://mozilla-ai.github.io/any-llm/)** - Complete guides and API reference
-- **[Supported Providers](https://mozilla-ai.github.io/any-llm/providers/)** - List of all supported LLM providers
-- **[Gateway Documentation](https://mozilla-ai.github.io/any-llm/gateway/overview/)** - Gateway setup and deployment
-- **[Python SDK](https://github.com/mozilla-ai/any-llm)** - The full Python SDK with direct provider access
-- **[any-llm Platform (Beta)](https://any-llm.ai/)** - Hosted control plane for key management, usage tracking, and cost visibility
+- **[Quickstart](docs/quickstart.md)** - Get up and running in minutes
+- **[Supported Providers](docs/providers.md)** - Per-provider setup, models, and features
+- **[API Reference](docs/api/)** - Completion, streaming, and error handling details
+- **[Examples](examples/)** - Runnable example programs
 
 ## Contributing
 
-We welcome contributions from developers of all skill levels! Please see our [Contributing Guide](CONTRIBUTING.md) or open an issue to discuss changes.
+We welcome contributions from developers of all skill levels! Open an issue to discuss changes, and see [AGENTS.md](AGENTS.md) for the coding conventions this repository follows.
 
 ## License
 

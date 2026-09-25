@@ -22,7 +22,7 @@ ctx := context.Background()
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Hello!"},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Hello!")},
     },
 })
 ```
@@ -54,15 +54,15 @@ Performs a chat completion request.
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "claude-3-5-haiku-latest",
     Messages: []llm.Message{
-        {Role: llm.ROLE_SYSTEM, Content: "You are a helpful assistant."},
-        {Role: llm.ROLE_USER, Content: "What is Go?"},
+        {Role: llm.ROLE_SYSTEM, Content: llm.ContentFromString("You are a helpful assistant.")},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("What is Go?")},
     },
 })
 if err != nil {
     log.Fatal(err)
 }
 
-fmt.Println(response.Choices[0].Message.Content)
+fmt.Println(response.Choices[0].Message.ContentString())
 ```
 
 ## CompletionParams
@@ -92,6 +92,9 @@ type CompletionParams struct {
     // Stream enables streaming responses.
     Stream bool `json:"stream,omitempty"`
 
+    // StreamOptions configures streaming (e.g. include usage in the final chunk).
+    StreamOptions *StreamOptions `json:"stream_options,omitempty"`
+
     // Tools available for the model to call.
     Tools []ToolInfo `json:"tools,omitempty"`
 
@@ -113,6 +116,9 @@ type CompletionParams struct {
 
     // User identifier for tracking.
     User string `json:"user,omitempty"`
+
+    // Extra carries provider-specific parameters (excluded from JSON).
+    Extra map[string]any `json:"-"`
 }
 ```
 
@@ -122,14 +128,19 @@ type CompletionParams struct {
 
 ```go
 type Message struct {
-    Role       string      `json:"role"`
-    Content    any         `json:"content"` // string or []ContentPart
-    Name       string      `json:"name,omitempty"`
-    ToolCalls  []ToolCall  `json:"tool_calls,omitempty"`
-    ToolCallID string      `json:"tool_call_id,omitempty"`
-    Reasoning  *Reasoning  `json:"reasoning,omitempty"`
+    Role       string     `json:"role"`
+    Content    Content    `json:"content"`
+    Name       string     `json:"name,omitempty"`
+    ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+    ToolCallID string     `json:"tool_call_id,omitempty"`
+    Reasoning  *Reasoning `json:"reasoning,omitempty"`
 }
 ```
+
+`Content` is a sealed union — scalar text or a list of typed parts — built
+with the constructors `llm.ContentFromString` and `llm.ContentFromParts`.
+Read it back with the accessors `message.ContentString()` (text, or "")
+and `message.ContentParts()` (parts, or nil).
 
 ### Role Constants
 
@@ -149,14 +160,19 @@ For messages with images or other content types:
 ```go
 message := llm.Message{
     Role: llm.ROLE_USER,
-    Content: []llm.ContentPart{
-        {Type: "text", Text: "What's in this image?"},
-        {Type: "image_url", ImageURL: &llm.ImageURL{
+    Content: llm.ContentFromParts(
+        &llm.ContentPartText{Text: "What's in this image?"},
+        &llm.ContentPartImage{ImageURL: &llm.ImageURL{
             URL: "https://example.com/image.jpg",
         }},
-    },
+    ),
 }
 ```
+
+The part variants are `ContentPartText`, `ContentPartImage`,
+`ContentPartAudio`, `ContentPartFile`, and `ContentPartVideo`. Video parts
+are a provider extension beyond the OpenAI content model (e.g. Kimi's
+`video_url`); providers that cannot accept them reject the message.
 
 ## Response Types
 
@@ -245,7 +261,7 @@ if response.Choices[0].FinishReason == llm.FINISH_REASON_TOOL_CALLS {
         messages = append(messages, response.Choices[0].Message)
         messages = append(messages, llm.Message{
             Role:       llm.ROLE_TOOL,
-            Content:    result,
+            Content:    llm.ContentFromString(result),
             ToolCallID: tc.ID,
         })
     }

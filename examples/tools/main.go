@@ -126,5 +126,5 @@ func main() {
 	}
 
 	// Print the final response.
-	fmt.Printf("Assistant: %s\n", response.Choices[0].Message.Content)
+	fmt.Printf("Assistant: %s\n", response.Choices[0].Message.ContentString())
 }

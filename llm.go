@@ -12,7 +12,7 @@
 //	response, err := provider.Completion(ctx, llm.CompletionParams{
 //	    Model: "gpt-4o-mini",
 //	    Messages: []llm.Message{
-//	        {Role: llm.ROLE_USER, Content: "Hello!"},
+//	        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Hello!")},
 //	    },
 //	})
 package llm
