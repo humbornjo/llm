@@ -122,6 +122,8 @@ type (
 	ImageURL         = providers.ImageURL
 	InputAudio       = providers.InputAudio
 	File             = providers.File
+	IsContent        = providers.IsContent
+	IsContentPart    = providers.IsContentPart
 	Message          = providers.Message
 	Reasoning        = providers.Reasoning
 )

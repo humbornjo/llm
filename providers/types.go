@@ -395,10 +395,10 @@ type CompletionTokensDetails struct {
 
 // ContentParts extracts content parts from a message.
 func (m *Message) ContentParts() []ContentPart {
-	if m == nil || m.Content == nil {
+	if m == nil {
 		return nil
 	}
-	parts, ok := m.Content.(*ContentParts)
+	parts, ok := m.Content.Unwrap().(*ContentParts)
 	if !ok || parts == nil {
 		return nil
 	}
@@ -407,10 +407,10 @@ func (m *Message) ContentParts() []ContentPart {
 
 // ContentString extracts string content from a message.
 func (m *Message) ContentString() string {
-	if m == nil || m.Content == nil {
+	if m == nil {
 		return ""
 	}
-	text, ok := m.Content.(*ContentString)
+	text, ok := m.Content.Unwrap().(*ContentString)
 	if !ok || text == nil {
 		return ""
 	}

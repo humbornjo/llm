@@ -727,7 +727,7 @@ func convertUserMessage(msg providers.Message) openai.ChatCompletionMessageParam
 	if msg.IsMultiModal() {
 		parts := make([]openai.ChatCompletionContentPartUnionParam, 0, len(msg.ContentParts()))
 		for _, part := range msg.ContentParts() {
-			switch part := part.(type) {
+			switch part := part.Unwrap().(type) {
 			case *providers.ContentPartText:
 				parts = append(parts, openai.TextContentPart(part.Text))
 			case *providers.ContentPartImage:

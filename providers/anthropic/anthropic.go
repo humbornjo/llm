@@ -718,7 +718,7 @@ func convertUserMessage(msg providers.Message) *anthropic.MessageParam {
 
 	content := make([]anthropic.ContentBlockParamUnion, 0)
 	for _, part := range msg.ContentParts() {
-		switch part := part.(type) {
+		switch part := part.Unwrap().(type) {
 		case *providers.ContentPartText:
 			content = append(content, anthropic.NewTextBlock(part.Text))
 		case *providers.ContentPartImage:
