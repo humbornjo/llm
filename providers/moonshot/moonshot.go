@@ -51,14 +51,17 @@ func New(opts ...config.Option) (*Provider, error) {
 		Name:           _PROVIDER_NAME,
 		RequireAPIKey:  true,
 		Capabilities: providers.Capabilities{
+			Embedding:           false,
+			ListModels:          true,
 			Completion:          true,
-			CompletionImage:     true,  // Base64 data URLs only, no public URLs.
-			CompletionPDF:       false, // No file content parts.
-			CompletionReasoning: true,  // Kimi K3 thinking models.
+			CompletionReasoning: true,
 			CompletionStreaming: true,
 			CompletionTools:     true,
-			Embedding:           false, // Kimi hosts no embedding models.
-			ListModels:          true,
+			CompletionTypes: []providers.ContentPartType{
+				providers.CONTENT_PART_TEXT,
+				providers.CONTENT_PART_IMAGE_URL, // Base64 data URLs only, no public URLs.
+				providers.CONTENT_PART_VIDEO_URL,
+			},
 		},
 		ChatCompletionChunkTransform:    convertChunkExtensions,
 		ChatCompletionResponseTransform: convertResponseExtensions,

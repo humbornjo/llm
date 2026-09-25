@@ -93,13 +93,14 @@ func (p *Provider) CompletionStream(
 func capabilities() providers.Capabilities {
 	return providers.Capabilities{
 		Completion:          true,
-		CompletionImage:     false, // DeepSeek doesn't support images.
-		CompletionPDF:       false,
 		CompletionReasoning: true, // DeepSeek R1 supports reasoning.
 		CompletionStreaming: true,
 		CompletionTools:     true,
-		Embedding:           false, // DeepSeek doesn't host embedding models.
-		ListModels:          true,
+		CompletionTypes: []providers.ContentPartType{
+			providers.CONTENT_PART_TEXT, // DeepSeek doesn't support images.
+		},
+		Embedding:  false, // DeepSeek doesn't host embedding models.
+		ListModels: true,
 	}
 }
 
