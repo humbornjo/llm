@@ -347,6 +347,191 @@ func TestOpenAI_ConvertResponseFormat(t *testing.T) {
 	})
 }
 
+func TestOpenAI_ConvertAssistantMessage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("omits content on a tool-call-only message", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertAssistantMessage(providers.Message{
+			Role: providers.ROLE_ASSISTANT,
+			ToolCalls: []providers.ToolCall{{
+				ID:       "call-1",
+				Type:     "function",
+				Function: providers.FunctionCall{Name: "bash", Arguments: `{"command":"pwd"}`},
+			}},
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		var fields map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(raw, &fields))
+		require.NotContains(t, fields, "content")
+		require.Contains(t, string(raw), `"tool_calls"`)
+	})
+
+	t.Run("omits empty string content beside tool calls", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertAssistantMessage(providers.Message{
+			Role:    providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromString(""),
+			ToolCalls: []providers.ToolCall{{
+				ID:       "call-1",
+				Type:     "function",
+				Function: providers.FunctionCall{Name: "bash", Arguments: `{"command":"pwd"}`},
+			}},
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		var fields map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(raw, &fields))
+		require.NotContains(t, fields, "content")
+	})
+
+	t.Run("keeps text content beside tool calls", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertAssistantMessage(providers.Message{
+			Role:    providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromString("on it"),
+			ToolCalls: []providers.ToolCall{{
+				ID:       "call-1",
+				Type:     "function",
+				Function: providers.FunctionCall{Name: "bash", Arguments: `{"command":"pwd"}`},
+			}},
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `"content":"on it"`)
+	})
+
+	t.Run("flattens text parts without tool calls", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertAssistantMessage(providers.Message{
+			Role: providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartText{Text: "Hi there! "},
+				&providers.ContentPartText{Text: "How can I help?"},
+			),
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `"content":"Hi there! How can I help?"`)
+	})
+
+	t.Run("flattens text parts beside tool calls", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertAssistantMessage(providers.Message{
+			Role:    providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromParts(&providers.ContentPartText{Text: "on it"}),
+			ToolCalls: []providers.ToolCall{{
+				ID:       "call-1",
+				Type:     "function",
+				Function: providers.FunctionCall{Name: "bash", Arguments: `{"command":"pwd"}`},
+			}},
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `"content":"on it"`)
+	})
+
+	t.Run("rejects non-text parts", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := convertAssistantMessage(providers.Message{
+			Role: providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartText{Text: "look: "},
+				&providers.ContentPartImage{ImageURL: &providers.ImageURL{URL: "https://example.com/a.png"}},
+			),
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "only text parts")
+	})
+}
+
+func TestOpenAI_ConvertUserMessage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("converts every part kind", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertUserMessage(providers.Message{
+			Role: providers.ROLE_USER,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartText{Text: "describe these"},
+				&providers.ContentPartImage{ImageURL: &providers.ImageURL{
+					URL:    "https://example.com/a.png",
+					Detail: "high",
+				}},
+				&providers.ContentPartAudio{InputAudio: &providers.InputAudio{Data: "AQI=", Format: "wav"}},
+				&providers.ContentPartFile{File: &providers.File{
+					FileId:   "file-1",
+					FileName: "notes.pdf",
+					FileData: "JVBERi0=",
+				}},
+			),
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `{"text":"describe these","type":"text"}`)
+		require.Contains(t, string(raw),
+			`{"image_url":{"url":"https://example.com/a.png","detail":"high"},"type":"image_url"}`)
+		require.Contains(t, string(raw),
+			`{"input_audio":{"data":"AQI=","format":"wav"},"type":"input_audio"}`)
+		require.Contains(t, string(raw),
+			`{"file":{"file_data":"JVBERi0=","file_id":"file-1","filename":"notes.pdf"},"type":"file"}`)
+	})
+
+	t.Run("omits unset file fields", func(t *testing.T) {
+		t.Parallel()
+
+		converted, err := convertUserMessage(providers.Message{
+			Role: providers.ROLE_USER,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartFile{File: &providers.File{FileId: "file-1"}},
+			),
+		})
+		require.NoError(t, err)
+		raw, err := json.Marshal(converted)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `{"file":{"file_id":"file-1"},"type":"file"}`)
+	})
+
+	t.Run("rejects parts without their payload", func(t *testing.T) {
+		t.Parallel()
+
+		for _, tc := range []struct {
+			name    string
+			part    providers.IsContentPart
+			wantErr string
+		}{
+			{"image", &providers.ContentPartImage{}, "requires image_url"},
+			{"audio", &providers.ContentPartAudio{}, "requires input_audio"},
+			{"file", &providers.ContentPartFile{}, "requires file"},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				_, err := convertUserMessage(providers.Message{
+					Role:    providers.ROLE_USER,
+					Content: providers.ContentFromParts(tc.part),
+				})
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantErr)
+			})
+		}
+	})
+}
+
 func TestOpenAI_ConvertEmbeddingParams(t *testing.T) {
 	t.Parallel()
 
