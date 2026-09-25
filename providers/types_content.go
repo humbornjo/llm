@@ -107,7 +107,8 @@ type ContentPart struct {
 
 // IsContentPart is the sealed union of content part variants: text
 // (ContentPartText), image URL (ContentPartImage), input audio
-// (ContentPartAudio), or file (ContentPartFile).
+// (ContentPartAudio), file (ContentPartFile), or video URL
+// (ContentPartVideo).
 type IsContentPart interface {
 	isContentPart()
 	GetType() ContentPartType
@@ -118,6 +119,7 @@ var (
 	_ IsContentPart = (*ContentPartImage)(nil)
 	_ IsContentPart = (*ContentPartAudio)(nil)
 	_ IsContentPart = (*ContentPartFile)(nil)
+	_ IsContentPart = (*ContentPartVideo)(nil)
 )
 
 // Unwrap returns the underlying part variant, or nil for the zero value.
@@ -133,6 +135,7 @@ const (
 	CONTENT_PART_FILE        ContentPartType = "file"
 	CONTENT_PART_IMAGE_URL   ContentPartType = "image_url"
 	CONTENT_PART_INPUT_AUDIO ContentPartType = "input_audio"
+	CONTENT_PART_VIDEO_URL   ContentPartType = "video_url"
 )
 
 // ContentPartText is a text content part.
@@ -179,6 +182,19 @@ func (*ContentPartFile) GetType() ContentPartType {
 	return CONTENT_PART_FILE
 }
 
+// ContentPartVideo is a video URL content part. It is a provider
+// extension beyond the OpenAI content model (e.g. Kimi's video_url);
+// providers that cannot accept it reject the message.
+type ContentPartVideo struct {
+	VideoURL *VideoURL
+}
+
+func (*ContentPartVideo) isContentPart() {}
+
+func (*ContentPartVideo) GetType() ContentPartType {
+	return CONTENT_PART_VIDEO_URL
+}
+
 func (p *ContentPartText) MarshalJSON() ([]byte, error) {
 	if p == nil {
 		return nil, errors.New("nil text content part")
@@ -221,6 +237,17 @@ func (p *ContentPartFile) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return []byte(`{"type":"file","file":` + string(file) + `}`), nil
+}
+
+func (p *ContentPartVideo) MarshalJSON() ([]byte, error) {
+	if p == nil || p.VideoURL == nil {
+		return nil, errors.New("video content part requires video_url")
+	}
+	video, err := json.Marshal(p.VideoURL)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(`{"type":"video_url","video_url":` + string(video) + `}`), nil
 }
 
 // MarshalJSON encodes the part with its type discriminator.
@@ -293,6 +320,18 @@ func (p *ContentPart) UnmarshalJSON(data []byte) error {
 			return errors.New("file is required")
 		}
 		p.value = &ContentPartFile{File: value.File}
+	case CONTENT_PART_VIDEO_URL:
+		var value struct {
+			Type     ContentPartType `json:"type"`
+			VideoURL *VideoURL       `json:"video_url"`
+		}
+		if err := unmarshalStrict(data, &value); err != nil {
+			return err
+		}
+		if value.Type != CONTENT_PART_VIDEO_URL || value.VideoURL == nil {
+			return errors.New("video_url is required")
+		}
+		p.value = &ContentPartVideo{VideoURL: value.VideoURL}
 	default:
 		return fmt.Errorf("unknown type %q", *discriminator.Type)
 	}

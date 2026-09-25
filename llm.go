@@ -37,6 +37,7 @@ const (
 	CONTENT_PART_FILE        = providers.CONTENT_PART_FILE
 	CONTENT_PART_IMAGE_URL   = providers.CONTENT_PART_IMAGE_URL
 	CONTENT_PART_INPUT_AUDIO = providers.CONTENT_PART_INPUT_AUDIO
+	CONTENT_PART_VIDEO_URL   = providers.CONTENT_PART_VIDEO_URL
 )
 
 // Finish reasons.
@@ -117,11 +118,13 @@ type (
 	ContentPartFile  = providers.ContentPartFile
 	ContentPartImage = providers.ContentPartImage
 	ContentPartText  = providers.ContentPartText
+	ContentPartVideo = providers.ContentPartVideo
 	ContentPart      = providers.ContentPart
 	ContentPartType  = providers.ContentPartType
 	ImageURL         = providers.ImageURL
 	InputAudio       = providers.InputAudio
 	File             = providers.File
+	VideoURL         = providers.VideoURL
 	IsContent        = providers.IsContent
 	IsContentPart    = providers.IsContentPart
 	Message          = providers.Message

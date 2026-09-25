@@ -10,6 +10,7 @@ llm supports multiple LLM providers through a unified interface. Each provider i
 | [DeepSeek](#deepseek)   | `deepseek`  |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ✅      |
 | [Gemini](#gemini)       | `gemini`    |     ✅      |     ✅     |   ✅   |     ✅     |     ✅      |      ✅      |
 | [Groq](#groq)           | `groq`      |     ✅      |     ✅     |   ✅   |     ❌     |     ❌      |      ✅      |
+| [Moonshot](#moonshot)   | `moonshot`  |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ✅      |
 | [OpenAI](#openai)       | `openai`    |     ✅      |     ✅     |   ✅   |     ✅     |     ✅      |      ✅      |
 | [z.ai](#zai)            | `zai`       |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ✅      |
 
@@ -181,6 +182,56 @@ resp, err := provider.Completion(ctx, llm.CompletionParams{
         {Role: llm.ROLE_USER, Content: "Hello!"},
     },
 })
+```
+
+### Moonshot
+
+Moonshot AI's Kimi exposes an OpenAI-compatible API with extensions beyond the OpenAI spec: thinking content is returned as `reasoning_content`, and user messages accept `video_url` content parts. The provider normalizes both — thinking lands in `Message.Reasoning`, and video parts pass through on the wire.
+
+```go
+import (
+    "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/moonshot"
+)
+
+// Using environment variable (MOONSHOT_API_KEY).
+provider, err := moonshot.New()
+
+// Or with explicit API key.
+provider, err := moonshot.New(llm.WithAPIKey("sk-..."))
+```
+
+**Environment Variable:** `MOONSHOT_API_KEY`
+
+**Popular Models:**
+- `kimi-k3-highspeed` - Fast thinking model
+
+See the [Kimi docs](https://platform.kimi.ai/docs) for the full model list.
+
+**Reasoning/Thinking:**
+
+Kimi K3 models return their thinking as `reasoning_content`, normalized into `Reasoning`:
+
+```go
+response, err := provider.Completion(ctx, llm.CompletionParams{
+    Model: "kimi-k3-highspeed",
+    Messages: messages,
+})
+
+if response.Choices[0].Message.Reasoning != nil {
+    fmt.Println("Thinking:", response.Choices[0].Message.Reasoning.Content)
+}
+```
+
+**Images and Video:**
+
+Images and videos must be sent as base64 data URLs — public image URLs are rejected. Large videos can be uploaded once and referenced as `ms://<file-id>`:
+
+```go
+{Role: llm.ROLE_USER, Content: llm.ContentFromParts(
+    &llm.ContentPartText{Text: "Describe this video."},
+    &llm.ContentPartVideo{VideoURL: &llm.VideoURL{URL: "data:video/mp4;base64,..."}},
+)}
 ```
 
 ### OpenAI

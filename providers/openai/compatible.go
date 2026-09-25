@@ -4,12 +4,14 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
 	stderrors "errors"
 	"fmt"
 	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/shared"
 
 	"github.com/humbornjo/llm/config"
@@ -54,14 +56,10 @@ type CompatibleConfig struct {
 	// Capabilities describes what the provider supports.
 	Capabilities providers.Capabilities
 
-	// DefaultAPIKey is used when RequireAPIKey is false (e.g., for local servers).
-	DefaultAPIKey string
-
-	// DefaultBaseURL is the default API base URL.
-	DefaultBaseURL string
-
-	// Name is the provider name used in error messages.
-	Name string
+	// ChatCompletionChunkTransform is the streaming counterpart of
+	// ChatCompletionResponseTransform, applied to each chunk after
+	// conversion. Nil means no transformation.
+	ChatCompletionChunkTransform func(*openai.ChatCompletionChunk, *providers.ChatCompletionChunk)
 
 	// ChatCompletionRequestTransform is an optional function that modifies the chat
 	// completion request after convertParams() builds it and before it is serialized
@@ -70,6 +68,22 @@ type CompatibleConfig struct {
 	// The pointer refers to a locally-constructed value owned by the caller; the
 	// function must not retain it beyond the call. Nil means no transformation.
 	ChatCompletionRequestTransform func(*openai.ChatCompletionNewParams)
+
+	// ChatCompletionResponseTransform is an optional function that maps provider
+	// response fields beyond the OpenAI spec (e.g. Kimi's reasoning_content)
+	// into the normalized completion after convertResponse() builds it. The
+	// pointers refer to locally-constructed values owned by the caller; the
+	// function must not retain them beyond the call. Nil means no transformation.
+	ChatCompletionResponseTransform func(*openai.ChatCompletion, *providers.ChatCompletion)
+
+	// DefaultAPIKey is used when RequireAPIKey is false (e.g., for local servers).
+	DefaultAPIKey string
+
+	// DefaultBaseURL is the default API base URL.
+	DefaultBaseURL string
+
+	// Name is the provider name used in error messages.
+	Name string
 
 	// RequireAPIKey indicates whether an API key is required.
 	RequireAPIKey bool
@@ -176,7 +190,11 @@ func (p *CompatibleProvider) Completion(
 		return nil, p.ConvertError(err)
 	}
 
-	return convertResponse(resp), nil
+	result := convertResponse(resp)
+	if p.compatibleConfig.ChatCompletionResponseTransform != nil {
+		p.compatibleConfig.ChatCompletionResponseTransform(resp, result)
+	}
+	return result, nil
 }
 
 // CompletionStream performs a streaming chat completion request.
@@ -212,8 +230,12 @@ func (p *CompatibleProvider) CompletionStream(ctx context.Context, params provid
 				return
 			}
 			chunk := stream.Current()
+			converted := convertChunk(&chunk)
+			if p.compatibleConfig.ChatCompletionChunkTransform != nil {
+				p.compatibleConfig.ChatCompletionChunkTransform(&chunk, &converted)
+			}
 			select {
-			case chunks <- convertChunk(&chunk):
+			case chunks <- converted:
 			case <-ctx.Done():
 				// Caller cancelled mid-stream; surface ctx.Err() so the
 				// consumer can tell a cancelled stream apart from one
@@ -815,6 +837,22 @@ func convertUserMessage(msg providers.Message) (openai.ChatCompletionMessagePara
 				file.FileData = openai.String(value.File.FileData)
 			}
 			parts = append(parts, openai.FileContentPart(file))
+		case *providers.ContentPartVideo:
+			if value.VideoURL == nil {
+				return openai.ChatCompletionMessageParamUnion{}, stderrors.New(
+					"video content part requires video_url",
+				)
+			}
+			// The OpenAI spec has no video part; video_url is a provider
+			// extension (e.g. Kimi), so emit the raw wire form through
+			// the SDK's union override.
+			raw, err := json.Marshal(value)
+			if err != nil {
+				return openai.ChatCompletionMessageParamUnion{}, err
+			}
+			parts = append(parts, param.Override[openai.ChatCompletionContentPartUnionParam](
+				json.RawMessage(raw),
+			))
 		default:
 			return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf(
 				"unknown content part type %T", value,

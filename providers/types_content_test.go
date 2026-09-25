@@ -25,8 +25,9 @@ func TestProviders_MessageContentJSONRoundTrip(t *testing.T) {
 				&ContentPartImage{ImageURL: &ImageURL{URL: "https://example.com/a.png", Detail: "high"}},
 				&ContentPartAudio{InputAudio: &InputAudio{Data: "AQI=", Format: "wav"}},
 				&ContentPartFile{File: &File{FileId: "file-1"}},
+				&ContentPartVideo{VideoURL: &VideoURL{URL: "data:video/mp4;base64,AAAA"}},
 			)},
-			want: `{"role":"user","content":[{"type":"text","text":"hello"},{"type":"image_url","image_url":{"url":"https://example.com/a.png","detail":"high"}},{"type":"input_audio","input_audio":{"data":"AQI=","format":"wav"}},{"type":"file","file":{"file_id":"file-1"}}]}`,
+			want: `{"role":"user","content":[{"type":"text","text":"hello"},{"type":"image_url","image_url":{"url":"https://example.com/a.png","detail":"high"}},{"type":"input_audio","input_audio":{"data":"AQI=","format":"wav"}},{"type":"file","file":{"file_id":"file-1"}},{"type":"video_url","video_url":{"url":"data:video/mp4;base64,AAAA"}}]}`,
 		},
 	}
 
@@ -92,6 +93,7 @@ func TestProviders_MessageContentJSONRejectsMalformedContent(t *testing.T) {
 		`{"role":"user","content":[{"type":"unknown"}]}`,
 		`{"role":"user","content":[{"text":"missing type"}]}`,
 		`{"role":"user","content":[{"type":"text"}]}`,
+		`{"role":"user","content":[{"type":"video_url"}]}`,
 		`{"role":"user","content":[{"type":"text","text":"ok","extra":true}]}`,
 		`{"role":"user","content":"ok","extra":true}`,
 		`{"role":"user","content":"ok"} trailing`,

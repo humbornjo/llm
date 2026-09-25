@@ -477,6 +477,7 @@ func TestOpenAI_ConvertUserMessage(t *testing.T) {
 					FileName: "notes.pdf",
 					FileData: "JVBERi0=",
 				}},
+				&providers.ContentPartVideo{VideoURL: &providers.VideoURL{URL: "data:video/mp4;base64,AAAA"}},
 			),
 		})
 		require.NoError(t, err)
@@ -489,6 +490,8 @@ func TestOpenAI_ConvertUserMessage(t *testing.T) {
 			`{"input_audio":{"data":"AQI=","format":"wav"},"type":"input_audio"}`)
 		require.Contains(t, string(raw),
 			`{"file":{"file_data":"JVBERi0=","file_id":"file-1","filename":"notes.pdf"},"type":"file"}`)
+		require.Contains(t, string(raw),
+			`{"type":"video_url","video_url":{"url":"data:video/mp4;base64,AAAA"}}`)
 	})
 
 	t.Run("omits unset file fields", func(t *testing.T) {
@@ -517,6 +520,7 @@ func TestOpenAI_ConvertUserMessage(t *testing.T) {
 			{"image", &providers.ContentPartImage{}, "requires image_url"},
 			{"audio", &providers.ContentPartAudio{}, "requires input_audio"},
 			{"file", &providers.ContentPartFile{}, "requires file"},
+			{"video", &providers.ContentPartVideo{}, "requires video_url"},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -587,6 +591,89 @@ func TestOpenAI_ConvertEmbeddingParams(t *testing.T) {
 		result := convertEmbeddingParams(params)
 		require.Equal(t, int64(256), result.Dimensions.Value)
 		require.Equal(t, "test-user", result.User.Value)
+	})
+}
+
+func TestOpenAI_CompatibleCompletionTransforms(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invokes response transform", func(t *testing.T) {
+		t.Parallel()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+				"id": "chatcmpl-1",
+				"object": "chat.completion",
+				"created": 1728000000,
+				"model": "test-model",
+				"choices": [{
+					"index": 0,
+					"message": {"role": "assistant", "content": "hi"},
+					"finish_reason": "stop"
+				}]
+			}`))
+		}))
+		t.Cleanup(srv.Close)
+
+		provider, err := NewCompatible(CompatibleConfig{
+			Name:           "test-provider",
+			DefaultBaseURL: srv.URL + "/v1",
+			DefaultAPIKey:  "test-key",
+			ChatCompletionResponseTransform: func(
+				raw *openaisdk.ChatCompletion,
+				normalized *providers.ChatCompletion,
+			) {
+				normalized.Choices[0].Message.Reasoning = &providers.Reasoning{Content: "from-hook"}
+			},
+		})
+		require.NoError(t, err)
+
+		resp, err := provider.Completion(context.Background(), providers.CompletionParams{
+			Model:    "test-model",
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("hi")}},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp.Choices[0].Message.Reasoning)
+		require.Equal(t, "from-hook", resp.Choices[0].Message.Reasoning.Content)
+	})
+
+	t.Run("invokes chunk transform", func(t *testing.T) {
+		t.Parallel()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte(
+				"data: {\"id\":\"chunk-1\",\"object\":\"chat.completion.chunk\",\"created\":1728000000,\"model\":\"test-model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hi\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+			))
+		}))
+		t.Cleanup(srv.Close)
+
+		provider, err := NewCompatible(CompatibleConfig{
+			Name:           "test-provider",
+			DefaultBaseURL: srv.URL + "/v1",
+			DefaultAPIKey:  "test-key",
+			ChatCompletionChunkTransform: func(
+				raw *openaisdk.ChatCompletionChunk,
+				normalized *providers.ChatCompletionChunk,
+			) {
+				normalized.Choices[0].Delta.Reasoning = &providers.Reasoning{Content: "from-hook"}
+			},
+		})
+		require.NoError(t, err)
+
+		chunks, errs := provider.CompletionStream(context.Background(), providers.CompletionParams{
+			Model:    "test-model",
+			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("hi")}},
+		})
+		var collected []providers.ChatCompletionChunk
+		for chunk := range chunks {
+			collected = append(collected, chunk)
+		}
+		require.NoError(t, <-errs)
+		require.Len(t, collected, 1)
+		require.NotNil(t, collected[0].Choices[0].Delta.Reasoning)
+		require.Equal(t, "from-hook", collected[0].Choices[0].Delta.Reasoning.Content)
 	})
 }
 

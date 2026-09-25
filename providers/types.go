@@ -288,6 +288,13 @@ type InputAudio struct {
 	Format string `json:"format"`
 }
 
+// VideoURL represents a video URL in a message: a base64 data URL or a
+// provider file reference (e.g. Kimi's ms://file-id). It is a provider
+// extension beyond the OpenAI content model.
+type VideoURL struct {
+	URL string `json:"url"`
+}
+
 // File represents an file input in a message.
 type File struct {
 	FileId   string `json:"file_id,omitempty"`

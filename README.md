@@ -355,6 +355,7 @@ if errors.As(err, &rateLimitErr) {
 |  llama.cpp |      ✅      |      ✅      |      ✅ |      ❌      |      ✅       |
 | Llamafile  |      ✅      |      ✅      |      ✅ |      ❌      |      ✅       |
 |  Mistral   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
+|  Moonshot  |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
 |   Ollama   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
 |   OpenAI   |      ✅      |      ✅      |      ✅ |      ✅      |      ✅       |
 |    z.ai    |      ✅      |      ✅      |      ✅ |      ✅      |      ❌       |
