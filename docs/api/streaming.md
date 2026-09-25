@@ -8,7 +8,7 @@ Streaming allows you to receive partial responses as they're generated, enabling
 chunks, errs := provider.CompletionStream(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Write a short story."},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Write a short story.")},
     },
     Stream: true,
 })
@@ -144,7 +144,7 @@ chunks, errs := provider.CompletionStream(ctx, llm.CompletionParams{
 })
 
 var toolCalls []llm.ToolCall
-toolCallArgs := make(map[int]strings.Builder)
+toolCallArgs := make(map[int]*strings.Builder)
 
 for chunk := range chunks {
     if len(chunk.Choices) > 0 {
@@ -164,6 +164,9 @@ for chunk := range chunks {
             if tc.Function.Arguments != "" {
                 // Accumulate arguments.
                 idx := len(toolCalls) - 1
+                if toolCallArgs[idx] == nil {
+                    toolCallArgs[idx] = &strings.Builder{}
+                }
                 toolCallArgs[idx].WriteString(tc.Function.Arguments)
             }
         }

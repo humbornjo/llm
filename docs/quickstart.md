@@ -4,7 +4,7 @@ Get up and running with llm in minutes.
 
 ## Prerequisites
 
-- **Go 1.25+** - [Download Go](https://go.dev/dl/)
+- **Go 1.26+** - [Download Go](https://go.dev/dl/)
 - **API Keys** - Get API keys from your chosen providers:
   - [OpenAI](https://platform.openai.com/api-keys)
   - [Anthropic](https://console.anthropic.com/)
@@ -53,14 +53,14 @@ func main() {
     response, err := provider.Completion(ctx, llm.CompletionParams{
         Model: "gpt-4o-mini",
         Messages: []llm.Message{
-            {Role: llm.ROLE_USER, Content: "Say hello in three languages!"},
+            {Role: llm.ROLE_USER, Content: llm.ContentFromString("Say hello in three languages!")},
         },
     })
     if err != nil {
         log.Fatal(err)
     }
 
-    fmt.Println(response.Choices[0].Message.Content)
+    fmt.Println(response.Choices[0].Message.ContentString())
 }
 ```
 
@@ -99,7 +99,7 @@ func main() {
     chunks, errs := provider.CompletionStream(ctx, llm.CompletionParams{
         Model: "gpt-4o-mini",
         Messages: []llm.Message{
-            {Role: llm.ROLE_USER, Content: "Write a haiku about programming."},
+            {Role: llm.ROLE_USER, Content: llm.ContentFromString("Write a haiku about programming.")},
         },
         Stream: true,
     })
@@ -127,8 +127,8 @@ Guide the model's behavior with system messages:
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_SYSTEM, Content: "You are a helpful assistant that speaks like a pirate."},
-        {Role: llm.ROLE_USER, Content: "How do I make coffee?"},
+        {Role: llm.ROLE_SYSTEM, Content: llm.ContentFromString("You are a helpful assistant that speaks like a pirate.")},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("How do I make coffee?")},
     },
 })
 ```
@@ -144,7 +144,7 @@ maxTokens := 500
 response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gpt-4o-mini",
     Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Write a creative story."},
+        {Role: llm.ROLE_USER, Content: llm.ContentFromString("Write a creative story.")},
     },
     Temperature: &temp,
     MaxTokens:   &maxTokens,
@@ -213,7 +213,7 @@ func tryProvider(providerName string, model string, messages []llm.Message) erro
         return err
     }
 
-    fmt.Printf("%s: %s\n", providerName, response.Choices[0].Message.Content)
+    fmt.Printf("%s: %s\n", providerName, response.Choices[0].Message.ContentString())
     return nil
 }
 ```

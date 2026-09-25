@@ -10,21 +10,68 @@ import (
 
 // ContentFromString creates scalar text message content.
 func ContentFromString(text string) Content {
-	return new(ContentString(text))
+	return Content{value: new(ContentString(text))}
 }
 
 // ContentFromParts creates multimodal message content from the given
 // parts, which must not be empty.
-func ContentFromParts(parts ...ContentPart) Content {
-	return new(ContentParts(parts))
+func ContentFromParts(parts ...IsContentPart) Content {
+	wrapped := make(ContentParts, 0, len(parts))
+	for _, part := range parts {
+		wrapped = append(wrapped, ContentPart{value: part})
+	}
+	return Content{value: &wrapped}
 }
 
-// Content is either scalar text or a non-empty list of typed content parts.
-type Content isContent
+// Content is either scalar text or a non-empty list of typed content
+// parts. The zero value carries no content.
+type Content struct {
+	value IsContent
+}
 
-type isContent interface {
+// IsContent is the sealed union of message content variants: scalar text
+// (ContentString) or a non-empty list of typed parts (ContentParts).
+type IsContent interface {
 	isContent()
 	GetType() ContentType
+}
+
+var (
+	_ IsContent = (*ContentString)(nil)
+	_ IsContent = (*ContentParts)(nil)
+)
+
+// Unwrap returns the underlying content variant, or nil for the zero
+// value.
+func (c Content) Unwrap() IsContent {
+	return c.value
+}
+
+// UnmarshalJSON decodes content from either a JSON string or an array of
+// typed content parts.
+func (c *Content) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return errors.New("content is required")
+	}
+	switch trimmed[0] {
+	case '"':
+		var text string
+		if err := unmarshalStrict(data, &text); err != nil {
+			return err
+		}
+		c.value = new(ContentString(text))
+		return nil
+	case '[':
+		var parts ContentParts
+		if err := json.Unmarshal(data, &parts); err != nil {
+			return err
+		}
+		c.value = &parts
+		return nil
+	default:
+		return errors.New("content must be a string or array")
+	}
 }
 
 type ContentType string
@@ -52,12 +99,32 @@ func (*ContentParts) GetType() ContentType {
 
 func (*ContentParts) isContent() {}
 
-// ContentPart is one typed part of multimodal message content.
-type ContentPart isContentPart
+// ContentPart is one typed part of multimodal message content. The zero
+// value carries no part.
+type ContentPart struct {
+	value IsContentPart
+}
 
-type isContentPart interface {
+// IsContentPart is the sealed union of content part variants: text
+// (ContentPartText), image URL (ContentPartImage), input audio
+// (ContentPartAudio), file (ContentPartFile), or video URL
+// (ContentPartVideo).
+type IsContentPart interface {
 	isContentPart()
 	GetType() ContentPartType
+}
+
+var (
+	_ IsContentPart = (*ContentPartText)(nil)
+	_ IsContentPart = (*ContentPartImage)(nil)
+	_ IsContentPart = (*ContentPartAudio)(nil)
+	_ IsContentPart = (*ContentPartFile)(nil)
+	_ IsContentPart = (*ContentPartVideo)(nil)
+)
+
+// Unwrap returns the underlying part variant, or nil for the zero value.
+func (p ContentPart) Unwrap() IsContentPart {
+	return p.value
 }
 
 // ContentPartType is the JSON discriminator for a content part.
@@ -68,6 +135,7 @@ const (
 	CONTENT_PART_FILE        ContentPartType = "file"
 	CONTENT_PART_IMAGE_URL   ContentPartType = "image_url"
 	CONTENT_PART_INPUT_AUDIO ContentPartType = "input_audio"
+	CONTENT_PART_VIDEO_URL   ContentPartType = "video_url"
 )
 
 // ContentPartText is a text content part.
@@ -114,6 +182,19 @@ func (*ContentPartFile) GetType() ContentPartType {
 	return CONTENT_PART_FILE
 }
 
+// ContentPartVideo is a video URL content part. It is a provider
+// extension beyond the OpenAI content model (e.g. Kimi's video_url);
+// providers that cannot accept it reject the message.
+type ContentPartVideo struct {
+	VideoURL *VideoURL
+}
+
+func (*ContentPartVideo) isContentPart() {}
+
+func (*ContentPartVideo) GetType() ContentPartType {
+	return CONTENT_PART_VIDEO_URL
+}
+
 func (p *ContentPartText) MarshalJSON() ([]byte, error) {
 	if p == nil {
 		return nil, errors.New("nil text content part")
@@ -158,12 +239,111 @@ func (p *ContentPartFile) MarshalJSON() ([]byte, error) {
 	return []byte(`{"type":"file","file":` + string(file) + `}`), nil
 }
 
+func (p *ContentPartVideo) MarshalJSON() ([]byte, error) {
+	if p == nil || p.VideoURL == nil {
+		return nil, errors.New("video content part requires video_url")
+	}
+	video, err := json.Marshal(p.VideoURL)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(`{"type":"video_url","video_url":` + string(video) + `}`), nil
+}
+
+// MarshalJSON encodes the part with its type discriminator.
+func (p ContentPart) MarshalJSON() ([]byte, error) {
+	if p.value == nil {
+		return nil, errors.New("content part is required")
+	}
+	return json.Marshal(p.value)
+}
+
+// UnmarshalJSON decodes one content part, discriminated by its type
+// field.
+func (p *ContentPart) UnmarshalJSON(data []byte) error {
+	var discriminator struct {
+		Type *ContentPartType `json:"type"`
+	}
+	if err := json.Unmarshal(data, &discriminator); err != nil {
+		return err
+	}
+	if discriminator.Type == nil || *discriminator.Type == "" {
+		return errors.New("type is required")
+	}
+
+	switch *discriminator.Type {
+	case CONTENT_PART_TEXT:
+		var value struct {
+			Type ContentPartType `json:"type"`
+			Text *string         `json:"text"`
+		}
+		if err := unmarshalStrict(data, &value); err != nil {
+			return err
+		}
+		if value.Type != CONTENT_PART_TEXT || value.Text == nil {
+			return errors.New("text is required")
+		}
+		p.value = &ContentPartText{Text: *value.Text}
+	case CONTENT_PART_IMAGE_URL:
+		var value struct {
+			Type     ContentPartType `json:"type"`
+			ImageURL *ImageURL       `json:"image_url"`
+		}
+		if err := unmarshalStrict(data, &value); err != nil {
+			return err
+		}
+		if value.Type != CONTENT_PART_IMAGE_URL || value.ImageURL == nil {
+			return errors.New("image_url is required")
+		}
+		p.value = &ContentPartImage{ImageURL: value.ImageURL}
+	case CONTENT_PART_INPUT_AUDIO:
+		var value struct {
+			Type       ContentPartType `json:"type"`
+			InputAudio *InputAudio     `json:"input_audio"`
+		}
+		if err := unmarshalStrict(data, &value); err != nil {
+			return err
+		}
+		if value.Type != CONTENT_PART_INPUT_AUDIO || value.InputAudio == nil {
+			return errors.New("input_audio is required")
+		}
+		p.value = &ContentPartAudio{InputAudio: value.InputAudio}
+	case CONTENT_PART_FILE:
+		var value struct {
+			Type ContentPartType `json:"type"`
+			File *File           `json:"file"`
+		}
+		if err := unmarshalStrict(data, &value); err != nil {
+			return err
+		}
+		if value.Type != CONTENT_PART_FILE || value.File == nil {
+			return errors.New("file is required")
+		}
+		p.value = &ContentPartFile{File: value.File}
+	case CONTENT_PART_VIDEO_URL:
+		var value struct {
+			Type     ContentPartType `json:"type"`
+			VideoURL *VideoURL       `json:"video_url"`
+		}
+		if err := unmarshalStrict(data, &value); err != nil {
+			return err
+		}
+		if value.Type != CONTENT_PART_VIDEO_URL || value.VideoURL == nil {
+			return errors.New("video_url is required")
+		}
+		p.value = &ContentPartVideo{VideoURL: value.VideoURL}
+	default:
+		return fmt.Errorf("unknown type %q", *discriminator.Type)
+	}
+	return nil
+}
+
 func (p *ContentParts) MarshalJSON() ([]byte, error) {
 	if p == nil || len(*p) == 0 {
 		return nil, errors.New("content parts must not be empty")
 	}
 	for _, part := range *p {
-		if part == nil {
+		if part.Unwrap() == nil {
 			return nil, errors.New("content part must not be nil")
 		}
 	}
@@ -181,67 +361,8 @@ func (p *ContentParts) UnmarshalJSON(data []byte) error {
 
 	parts := make(ContentParts, len(raw))
 	for i, item := range raw {
-		var discriminator struct {
-			Type *ContentPartType `json:"type"`
-		}
-		if err := json.Unmarshal(item, &discriminator); err != nil {
+		if err := json.Unmarshal(item, &parts[i]); err != nil {
 			return fmt.Errorf("content part %d is invalid: %w", i, err)
-		}
-		if discriminator.Type == nil || *discriminator.Type == "" {
-			return fmt.Errorf("content part %d type is required", i)
-		}
-
-		switch *discriminator.Type {
-		case CONTENT_PART_TEXT:
-			var value struct {
-				Type ContentPartType `json:"type"`
-				Text *string         `json:"text"`
-			}
-			if err := unmarshalStrict(item, &value); err != nil {
-				return fmt.Errorf("content part %d is invalid: %w", i, err)
-			}
-			if value.Type != CONTENT_PART_TEXT || value.Text == nil {
-				return fmt.Errorf("content part %d text is required", i)
-			}
-			parts[i] = &ContentPartText{Text: *value.Text}
-		case CONTENT_PART_IMAGE_URL:
-			var value struct {
-				Type     ContentPartType `json:"type"`
-				ImageURL *ImageURL       `json:"image_url"`
-			}
-			if err := unmarshalStrict(item, &value); err != nil {
-				return fmt.Errorf("content part %d is invalid: %w", i, err)
-			}
-			if value.Type != CONTENT_PART_IMAGE_URL || value.ImageURL == nil {
-				return fmt.Errorf("content part %d image_url is required", i)
-			}
-			parts[i] = &ContentPartImage{ImageURL: value.ImageURL}
-		case CONTENT_PART_INPUT_AUDIO:
-			var value struct {
-				Type       ContentPartType `json:"type"`
-				InputAudio *InputAudio     `json:"input_audio"`
-			}
-			if err := unmarshalStrict(item, &value); err != nil {
-				return fmt.Errorf("content part %d is invalid: %w", i, err)
-			}
-			if value.Type != CONTENT_PART_INPUT_AUDIO || value.InputAudio == nil {
-				return fmt.Errorf("content part %d input_audio is required", i)
-			}
-			parts[i] = &ContentPartAudio{InputAudio: value.InputAudio}
-		case CONTENT_PART_FILE:
-			var value struct {
-				Type ContentPartType `json:"type"`
-				File *File           `json:"file"`
-			}
-			if err := unmarshalStrict(item, &value); err != nil {
-				return fmt.Errorf("content part %d is invalid: %w", i, err)
-			}
-			if value.Type != CONTENT_PART_FILE || value.File == nil {
-				return fmt.Errorf("content part %d file is required", i)
-			}
-			parts[i] = &ContentPartFile{File: value.File}
-		default:
-			return fmt.Errorf("content part %d has unknown type %q", i, *discriminator.Type)
 		}
 	}
 	*p = parts
@@ -265,12 +386,20 @@ func unmarshalStrict(data []byte, value any) error {
 }
 
 func (m Message) MarshalJSON() ([]byte, error) {
-	if m.Content == nil {
+	// A message that only carries tool calls has no content; the
+	// OpenAI wire form is an explicit null, and strict providers
+	// reject an empty string or empty parts list. Any other
+	// content-less message is a caller bug.
+	if m.Content.Unwrap() == nil && len(m.ToolCalls) == 0 {
 		return nil, errors.New("message content is required")
 	}
-	content, err := json.Marshal(m.Content)
-	if err != nil {
-		return nil, fmt.Errorf("message content is invalid: %w", err)
+	content := []byte("null")
+	if m.Content.Unwrap() != nil {
+		var err error
+		content, err = json.Marshal(m.Content.Unwrap())
+		if err != nil {
+			return nil, fmt.Errorf("message content is invalid: %w", err)
+		}
 	}
 	role, err := json.Marshal(m.Role)
 	if err != nil {
@@ -335,23 +464,9 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 		return errors.New("message content is required")
 	}
 
-	trimmed := bytes.TrimSpace(contentRaw)
 	var content Content
-	switch trimmed[0] {
-	case '"':
-		var text string
-		if err := unmarshalStrict(contentRaw, &text); err != nil {
-			return fmt.Errorf("message content is invalid: %w", err)
-		}
-		content = new(ContentString(text))
-	case '[':
-		var parts ContentParts
-		if err := json.Unmarshal(contentRaw, &parts); err != nil {
-			return fmt.Errorf("message content is invalid: %w", err)
-		}
-		content = &parts
-	default:
-		return errors.New("message content must be a string or array")
+	if err := json.Unmarshal(contentRaw, &content); err != nil {
+		return fmt.Errorf("message content is invalid: %w", err)
 	}
 
 	if raw, ok := fields["role"]; ok {

@@ -9,9 +9,8 @@ llm supports multiple LLM providers through a unified interface. Each provider i
 | [Anthropic](#anthropic) | `anthropic` |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ❌      |
 | [DeepSeek](#deepseek)   | `deepseek`  |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ✅      |
 | [Gemini](#gemini)       | `gemini`    |     ✅      |     ✅     |   ✅   |     ✅     |     ✅      |      ✅      |
-| [Groq](#groq)           | `groq`      |     ✅      |     ✅     |   ✅   |     ❌     |     ❌      |      ✅      |
+| [Moonshot](#moonshot)   | `moonshot`  |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ✅      |
 | [OpenAI](#openai)       | `openai`    |     ✅      |     ✅     |   ✅   |     ✅     |     ✅      |      ✅      |
-| [z.ai](#zai)            | `zai`       |     ✅      |     ✅     |   ✅   |     ✅     |     ❌      |      ✅      |
 
 ### Legend
 
@@ -87,7 +86,7 @@ provider, err := deepseek.New(llm.WithAPIKey("sk-..."))
 
 **Reasoning/Thinking:**
 
-DeepSeek R1 supports extended thinking for complex reasoning tasks:
+DeepSeek's `deepseek-reasoner` model performs extended thinking server-side; enable it with `ReasoningEffort`:
 
 ```go
 response, err := provider.Completion(ctx, llm.CompletionParams{
@@ -95,10 +94,6 @@ response, err := provider.Completion(ctx, llm.CompletionParams{
     Messages: messages,
     ReasoningEffort: llm.REASONING_EFFORT_MEDIUM,
 })
-
-if response.Choices[0].Message.Reasoning != nil {
-    fmt.Println("Thinking:", response.Choices[0].Message.Reasoning.Content)
-}
 ```
 
 **JSON Schema:**
@@ -147,40 +142,54 @@ if response.Choices[0].Message.Reasoning != nil {
 }
 ```
 
-### Groq
+### Moonshot
 
-Groq provides fast inference through their cloud API. It exposes an OpenAI-compatible API.
+Moonshot AI's Kimi exposes an OpenAI-compatible API with extensions beyond the OpenAI spec: thinking content is returned as `reasoning_content`, and user messages accept `video_url` content parts. The provider normalizes both — thinking lands in `Message.Reasoning`, and video parts pass through on the wire.
 
 ```go
 import (
     "github.com/humbornjo/llm"
-    "github.com/humbornjo/llm/providers/groq"
+    "github.com/humbornjo/llm/providers/moonshot"
 )
 
-// Using environment variable (GROQ_API_KEY).
-provider, err := groq.New()
+// Using environment variable (MOONSHOT_API_KEY).
+provider, err := moonshot.New()
 
 // Or with explicit API key.
-provider, err := groq.New(llm.WithAPIKey("gsk_..."))
+provider, err := moonshot.New(llm.WithAPIKey("sk-..."))
 ```
 
-**Environment Variable:** `GROQ_API_KEY`
+**Environment Variable:** `MOONSHOT_API_KEY`
 
 **Popular Models:**
-- `llama-3.1-8b-instant` - Fast and cost-effective
-- `llama-3.3-70b-versatile` - More capable model
-- `mixtral-8x7b-32768` - Mixtral with 32k context
+- `kimi-k3-highspeed` - Fast thinking model
 
-**Completion:**
+See the [Kimi docs](https://platform.kimi.ai/docs) for the full model list.
+
+**Reasoning/Thinking:**
+
+Kimi K3 models return their thinking as `reasoning_content`, normalized into `Reasoning`:
 
 ```go
-provider, _ := groq.New()
-resp, err := provider.Completion(ctx, llm.CompletionParams{
-    Model: "llama-3.1-8b-instant",
-    Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Hello!"},
-    },
+response, err := provider.Completion(ctx, llm.CompletionParams{
+    Model: "kimi-k3-highspeed",
+    Messages: messages,
 })
+
+if response.Choices[0].Message.Reasoning != nil {
+    fmt.Println("Thinking:", response.Choices[0].Message.Reasoning.Content)
+}
+```
+
+**Images and Video:**
+
+Images and videos must be sent as base64 data URLs — public image URLs are rejected. Large videos can be uploaded once and referenced as `ms://<file-id>`:
+
+```go
+{Role: llm.ROLE_USER, Content: llm.ContentFromParts(
+    &llm.ContentPartText{Text: "Describe this video."},
+    &llm.ContentPartVideo{VideoURL: &llm.VideoURL{URL: "data:video/mp4;base64,..."}},
+)}
 ```
 
 ### OpenAI
@@ -217,44 +226,6 @@ provider, err := openai.New(
 - `text-embedding-3-small` - Cost-effective embeddings
 - `text-embedding-3-large` - Higher quality embeddings
 
-### z.ai
-
-z.ai provides access to the GLM model family through an OpenAI-compatible API.
-
-```go
-import (
-    "github.com/humbornjo/llm"
-    "github.com/humbornjo/llm/providers/zai"
-)
-
-// Using environment variable (ZAI_API_KEY).
-provider, err := zai.New()
-
-// Or with explicit API key.
-provider, err := zai.New(llm.WithAPIKey("your-key"))
-```
-
-**Environment Variable:** `ZAI_API_KEY`
-
-**Popular Models:**
-- `glm-4.5-air` - Fast and cost-effective
-- `glm-4.5` - Capable general model
-- `glm-4.6` - Vision-capable model
-- `glm-4.7` - Advanced model
-- `glm-5` - Most capable model
-
-**Completion:**
-
-```go
-provider, _ := zai.New()
-resp, err := provider.Completion(ctx, llm.CompletionParams{
-    Model: "glm-4.6",
-    Messages: []llm.Message{
-        {Role: llm.ROLE_USER, Content: "Hello!"},
-    },
-})
-```
-
 ## Coming Soon
 
 The following providers are planned for future releases:
@@ -268,7 +239,9 @@ The following providers are planned for future releases:
 
 ## Adding a New Provider
 
-Want to add support for a new provider? See our [Contributing Guide](../CONTRIBUTING.md) for instructions on implementing a new provider.
+Want to add support for a new provider? The existing packages are the reference:
+`providers/openai` shows a full SDK-backed implementation, and
+`providers/deepseek` shows how to wrap it for an OpenAI-compatible API.
 
 The basic requirements are:
 
@@ -286,12 +259,13 @@ All providers normalize their responses to OpenAI's format:
 
 ```go
 type ChatCompletion struct {
-    ID      string   `json:"id"`
-    Object  string   `json:"object"`
-    Created int64    `json:"created"`
-    Model   string   `json:"model"`
-    Choices []Choice `json:"choices"`
-    Usage   *Usage   `json:"usage,omitempty"`
+    ID                string   `json:"id"`
+    Object            string   `json:"object"`
+    Created           int64    `json:"created"`
+    Model             string   `json:"model"`
+    Choices           []Choice `json:"choices"`
+    Usage             *Usage   `json:"usage,omitempty"`
+    SystemFingerprint string   `json:"system_fingerprint,omitempty"`
 }
 ```
 
