@@ -60,11 +60,12 @@ func TestDeepSeek_Capabilities(t *testing.T) {
 	caps := provider.Capabilities()
 
 	require.True(t, caps.Completion)
-	require.False(t, caps.CompletionImage)
-	require.False(t, caps.CompletionPDF)
 	require.True(t, caps.CompletionReasoning)
 	require.True(t, caps.CompletionStreaming)
 	require.True(t, caps.CompletionTools)
+	require.ElementsMatch(t, []providers.ContentPartType{
+		providers.CONTENT_PART_TEXT,
+	}, caps.CompletionTypes)
 	require.False(t, caps.Embedding)
 	require.True(t, caps.ListModels)
 }

@@ -35,14 +35,18 @@ func New(opts ...config.Option) (*Provider, error) {
 		Name:           _PROVIDER_NAME,
 		RequireAPIKey:  true,
 		Capabilities: providers.Capabilities{
+			Embedding:           true,
+			ListModels:          true,
 			Completion:          true,
-			CompletionImage:     true,
-			CompletionPDF:       false,
 			CompletionReasoning: true,
 			CompletionStreaming: true,
 			CompletionTools:     true,
-			Embedding:           true,
-			ListModels:          true,
+			CompletionTypes: []providers.ContentPartType{
+				providers.CONTENT_PART_TEXT,
+				providers.CONTENT_PART_IMAGE_URL,
+				providers.CONTENT_PART_INPUT_AUDIO,
+				providers.CONTENT_PART_FILE,
+			},
 		},
 	}, opts...)
 	if err != nil {

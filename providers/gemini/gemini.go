@@ -151,13 +151,15 @@ func New(opts ...config.Option) (*Provider, error) {
 func (p *Provider) Capabilities() providers.Capabilities {
 	return providers.Capabilities{
 		Completion:          true,
-		CompletionImage:     true,
-		CompletionPDF:       false,
 		CompletionReasoning: true,
 		CompletionStreaming: true,
 		CompletionTools:     true,
-		Embedding:           true,
-		ListModels:          true,
+		CompletionTypes: []providers.ContentPartType{
+			providers.CONTENT_PART_TEXT,
+			providers.CONTENT_PART_IMAGE_URL,
+		},
+		Embedding:  true,
+		ListModels: true,
 	}
 }
 
