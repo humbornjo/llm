@@ -31,6 +31,14 @@ const (
 	ROLE_USER      = providers.ROLE_USER
 )
 
+// Content part type constants.
+const (
+	CONTENT_PART_TEXT        = providers.CONTENT_PART_TEXT
+	CONTENT_PART_FILE        = providers.CONTENT_PART_FILE
+	CONTENT_PART_IMAGE_URL   = providers.CONTENT_PART_IMAGE_URL
+	CONTENT_PART_INPUT_AUDIO = providers.CONTENT_PART_INPUT_AUDIO
+)
+
 // Finish reasons.
 const (
 	FINISH_REASON_CONTENT_FILTER = providers.FINISH_REASON_CONTENT_FILTER
@@ -103,6 +111,7 @@ type (
 // Message types.
 type (
 	Content          = providers.Content
+	ContentString    = providers.ContentString
 	ContentParts     = providers.ContentParts
 	ContentPartAudio = providers.ContentPartAudio
 	ContentPartFile  = providers.ContentPartFile
@@ -145,12 +154,14 @@ type (
 
 // Usage and model types.
 type (
-	BatchStatus     = providers.BatchStatus
-	EmbeddingData   = providers.EmbeddingData
-	EmbeddingUsage  = providers.EmbeddingUsage
-	Model           = providers.Model
-	ReasoningEffort = providers.ReasoningEffort
-	Usage           = providers.Usage
+	BatchStatus             = providers.BatchStatus
+	CompletionTokensDetails = providers.CompletionTokensDetails
+	EmbeddingData           = providers.EmbeddingData
+	EmbeddingUsage          = providers.EmbeddingUsage
+	Model                   = providers.Model
+	PromptTokensDetails     = providers.PromptTokensDetails
+	ReasoningEffort         = providers.ReasoningEffort
+	Usage                   = providers.Usage
 )
 
 // Config types.

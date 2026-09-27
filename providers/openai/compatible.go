@@ -385,12 +385,8 @@ func convertChunk(chunk *openai.ChatCompletionChunk) providers.ChatCompletionChu
 		SystemFingerprint: chunk.SystemFingerprint,
 	}
 
-	if chunk.Usage.PromptTokens > 0 || chunk.Usage.CompletionTokens > 0 {
-		result.Usage = &providers.Usage{
-			PromptTokens:     int(chunk.Usage.PromptTokens),
-			CompletionTokens: int(chunk.Usage.CompletionTokens),
-			TotalTokens:      int(chunk.Usage.TotalTokens),
-		}
+	if chunk.JSON.Usage.Valid() {
+		result.Usage = convertUsage(chunk.Usage)
 	}
 
 	return result
@@ -575,17 +571,51 @@ func convertResponse(resp *openai.ChatCompletion) *providers.ChatCompletion {
 		SystemFingerprint: resp.SystemFingerprint,
 	}
 
-	if resp.Usage.PromptTokens > 0 || resp.Usage.CompletionTokens > 0 {
-		result.Usage = &providers.Usage{
-			PromptTokens:     int(resp.Usage.PromptTokens),
-			CompletionTokens: int(resp.Usage.CompletionTokens),
-			TotalTokens:      int(resp.Usage.TotalTokens),
-		}
-		if resp.Usage.CompletionTokensDetails.ReasoningTokens > 0 {
-			result.Usage.ReasoningTokens = int(resp.Usage.CompletionTokensDetails.ReasoningTokens)
-		}
+	if resp.JSON.Usage.Valid() {
+		result.Usage = convertUsage(resp.Usage)
 	}
 
+	return result
+}
+
+func convertUsage(usage openai.CompletionUsage) *providers.Usage {
+	result := &providers.Usage{
+		TotalTokens:      int(usage.TotalTokens),
+		PromptTokens:     int(usage.PromptTokens),
+		CompletionTokens: int(usage.CompletionTokens),
+	}
+	if usage.JSON.PromptTokensDetails.Valid() {
+		details := &providers.PromptTokensDetails{}
+		if usage.PromptTokensDetails.JSON.AudioTokens.Valid() {
+			value := int(usage.PromptTokensDetails.AudioTokens)
+			details.AudioTokens = &value
+		}
+		if usage.PromptTokensDetails.JSON.CachedTokens.Valid() {
+			value := int(usage.PromptTokensDetails.CachedTokens)
+			details.CachedTokens = &value
+		}
+		result.PromptTokensDetails = details
+	}
+	if usage.JSON.CompletionTokensDetails.Valid() {
+		details := &providers.CompletionTokensDetails{}
+		if usage.CompletionTokensDetails.JSON.AcceptedPredictionTokens.Valid() {
+			value := int(usage.CompletionTokensDetails.AcceptedPredictionTokens)
+			details.AcceptedPredictionTokens = &value
+		}
+		if usage.CompletionTokensDetails.JSON.AudioTokens.Valid() {
+			value := int(usage.CompletionTokensDetails.AudioTokens)
+			details.AudioTokens = &value
+		}
+		if usage.CompletionTokensDetails.JSON.ReasoningTokens.Valid() {
+			value := int(usage.CompletionTokensDetails.ReasoningTokens)
+			details.ReasoningTokens = &value
+		}
+		if usage.CompletionTokensDetails.JSON.RejectedPredictionTokens.Valid() {
+			value := int(usage.CompletionTokensDetails.RejectedPredictionTokens)
+			details.RejectedPredictionTokens = &value
+		}
+		result.CompletionTokenDetails = details
+	}
 	return result
 }
 
