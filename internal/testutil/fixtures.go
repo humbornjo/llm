@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/providers"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/providers"
 )
 
 // ProviderModelMap maps providers to small, cheap test models.

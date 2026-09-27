@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	anyllm "github.com/mozilla-ai/any-llm-go"
-	"github.com/mozilla-ai/any-llm-go/internal/testutil"
+	anyllm "github.com/humbornjo/llm"
+	"github.com/humbornjo/llm/internal/testutil"
 )
 
 const (

@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/errors"
-	"github.com/mozilla-ai/any-llm-go/internal/testutil"
-	"github.com/mozilla-ai/any-llm-go/providers"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/errors"
+	"github.com/humbornjo/llm/internal/testutil"
+	"github.com/humbornjo/llm/providers"
 )
 
 func TestNew(t *testing.T) {

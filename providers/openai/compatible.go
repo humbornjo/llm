@@ -11,9 +11,9 @@ import (
 	"github.com/openai/openai-go/option"
 	"github.com/openai/openai-go/shared"
 
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/errors"
-	"github.com/mozilla-ai/any-llm-go/providers"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/errors"
+	"github.com/humbornjo/llm/providers"
 )
 
 // OpenAI API error codes.
