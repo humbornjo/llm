@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/stretchr/testify/require"
@@ -869,12 +871,13 @@ func TestIntegrationCompletionStream(t *testing.T) {
 		Stream:   true,
 	}
 
-	chunks, errs := provider.CompletionStream(ctx, params)
+	chunks := provider.CompletionStream(ctx, params)
 
 	var content strings.Builder
 	chunkCount := 0
 
-	for chunk := range chunks {
+	for chunk, streamErr := range chunks {
+		require.NoError(t, streamErr)
 		chunkCount++
 		require.Equal(t, "chat.completion.chunk", chunk.Object)
 		if len(chunk.Choices) > 0 {
@@ -882,11 +885,43 @@ func TestIntegrationCompletionStream(t *testing.T) {
 		}
 	}
 
-	err = <-errs
-	require.NoError(t, err)
-
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
+}
+
+func TestCompletionStreamEarlyStopClosesRequest(t *testing.T) {
+	requestDone := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(`event: message_start
+data: {"type":"message_start","message":{"id":"msg-test","type":"message","role":"assistant","model":"test-model","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":0}}}
+
+`))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		<-r.Context().Done()
+		close(requestDone)
+	}))
+	t.Cleanup(srv.Close)
+
+	provider, err := New(config.WithAPIKey("test-key"), config.WithBaseURL(srv.URL))
+	require.NoError(t, err)
+	params := providers.CompletionParams{
+		Model:    "test-model",
+		Messages: []providers.Message{{Role: providers.RoleUser, Content: "Hello"}},
+	}
+
+	for _, streamErr := range provider.CompletionStream(t.Context(), params) {
+		require.NoError(t, streamErr)
+		break
+	}
+
+	select {
+	case <-requestDone:
+	case <-time.After(time.Second):
+		t.Fatal("request remained active after iteration stopped")
+	}
 }
 
 func TestIntegrationCompletionWithTools(t *testing.T) {
