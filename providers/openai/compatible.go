@@ -318,16 +318,19 @@ func (p *CompatibleProvider) ListModels(ctx context.Context) (*providers.ModelsR
 
 // InterpretModelExtensions fills normalized Model fields from the
 // provider-reported payload recorded in Model.ProviderRaw: context_tokens
-// plus capabilities.support_efforts and capabilities.default_effort.
-// Compatible endpoints serving this extension shape (e.g. Kimi, proxied
-// GPT) call it from their ListModels.
+// plus capabilities.support_efforts, capabilities.default_effort, and the
+// capabilities.input_modalities / output_modalities lists. Compatible
+// endpoints serving this extension shape (e.g. Kimi, proxied GPT) call it
+// from their ListModels.
 func InterpretModelExtensions(models []providers.Model) {
 	for i := range models {
 		var extensions struct {
 			ContextTokens int64 `json:"context_tokens"`
 			Capabilities  struct {
-				DefaultEffort  providers.ReasoningEffort   `json:"default_effort"`
-				SupportEfforts []providers.ReasoningEffort `json:"support_efforts"`
+				DefaultEffort    providers.ReasoningEffort   `json:"default_effort"`
+				InputModalities  []string                    `json:"input_modalities"`
+				OutputModalities []string                    `json:"output_modalities"`
+				SupportEfforts   []providers.ReasoningEffort `json:"support_efforts"`
 			} `json:"capabilities"`
 		}
 		if err := json.Unmarshal(models[i].ProviderRaw, &extensions); err != nil {
@@ -335,8 +338,35 @@ func InterpretModelExtensions(models []providers.Model) {
 		}
 		models[i].ContextWindow = extensions.ContextTokens
 		models[i].DefaultEffort = extensions.Capabilities.DefaultEffort
+		models[i].InputTypes = contentPartTypesFromModalities(extensions.Capabilities.InputModalities)
+		models[i].OutputTypes = contentPartTypesFromModalities(extensions.Capabilities.OutputModalities)
 		models[i].SupportEfforts = extensions.Capabilities.SupportEfforts
 	}
+}
+
+// contentPartTypesFromModalities maps provider-reported modality names to
+// their wire content part types. Unknown modalities pass through as
+// ContentPartType values, as the provider reported them.
+func contentPartTypesFromModalities(modalities []string) []providers.ContentPartType {
+	if len(modalities) == 0 {
+		return nil
+	}
+	types := make([]providers.ContentPartType, 0, len(modalities))
+	for _, modality := range modalities {
+		switch modality {
+		case "text":
+			types = append(types, providers.CONTENT_PART_TEXT)
+		case "image":
+			types = append(types, providers.CONTENT_PART_IMAGE_URL)
+		case "audio":
+			types = append(types, providers.CONTENT_PART_INPUT_AUDIO)
+		case "video":
+			types = append(types, providers.CONTENT_PART_VIDEO_URL)
+		default:
+			types = append(types, providers.ContentPartType(modality))
+		}
+	}
+	return types
 }
 
 // Name returns the provider name.

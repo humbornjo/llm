@@ -135,6 +135,14 @@ func TestMoonshot_ListModels(t *testing.T) {
 	require.Equal(t, "moonshot-mock-dolor", extended.ID)
 	require.Equal(t, int64(1048576), extended.ContextWindow)
 	require.Equal(t, providers.REASONING_EFFORT_MAX, extended.DefaultEffort)
+	require.Equal(t, []providers.ContentPartType{
+		providers.CONTENT_PART_TEXT,
+		providers.CONTENT_PART_IMAGE_URL,
+		providers.CONTENT_PART_VIDEO_URL,
+	}, extended.InputTypes)
+	require.Equal(t, []providers.ContentPartType{
+		providers.CONTENT_PART_TEXT,
+	}, extended.OutputTypes)
 	require.Equal(t, []providers.ReasoningEffort{
 		providers.REASONING_EFFORT_LOW,
 		providers.REASONING_EFFORT_HIGH,
@@ -146,6 +154,8 @@ func TestMoonshot_ListModels(t *testing.T) {
 	require.Equal(t, "moonshot-mock-amet", plain.ID)
 	require.Zero(t, plain.ContextWindow)
 	require.Empty(t, plain.DefaultEffort)
+	require.Nil(t, plain.InputTypes)
+	require.Nil(t, plain.OutputTypes)
 	require.Nil(t, plain.SupportEfforts)
 }
 

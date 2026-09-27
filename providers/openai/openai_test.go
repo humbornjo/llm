@@ -602,6 +602,13 @@ func TestOpenAI_ListModels(t *testing.T) {
 	require.Equal(t, "openai-mock-lorem", extended.ID)
 	require.Equal(t, int64(1050000), extended.ContextWindow)
 	require.Equal(t, providers.REASONING_EFFORT_MEDIUM, extended.DefaultEffort)
+	require.Equal(t, []providers.ContentPartType{
+		providers.CONTENT_PART_TEXT,
+		providers.CONTENT_PART_IMAGE_URL,
+	}, extended.InputTypes)
+	require.Equal(t, []providers.ContentPartType{
+		providers.CONTENT_PART_TEXT,
+	}, extended.OutputTypes)
 	require.Equal(t, []providers.ReasoningEffort{
 		providers.REASONING_EFFORT_LOW,
 		providers.REASONING_EFFORT_MEDIUM,
@@ -617,6 +624,8 @@ func TestOpenAI_ListModels(t *testing.T) {
 	require.Equal(t, "openai", plain.OwnedBy)
 	require.Zero(t, plain.ContextWindow)
 	require.Empty(t, plain.DefaultEffort)
+	require.Nil(t, plain.InputTypes)
+	require.Nil(t, plain.OutputTypes)
 	require.Nil(t, plain.SupportEfforts)
 	require.NotEmpty(t, plain.ProviderRaw)
 }

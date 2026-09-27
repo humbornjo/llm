@@ -329,8 +329,14 @@ type Model struct {
 	// DefaultEffort is the model's default reasoning effort, when reported.
 	DefaultEffort ReasoningEffort `json:"default_effort,omitempty"`
 	ID            string          `json:"id"`
-	Object        string          `json:"object"`
-	OwnedBy       string          `json:"owned_by"`
+	// InputTypes lists the content part types the model accepts as input,
+	// when the provider reports them (from input_modalities).
+	InputTypes []ContentPartType `json:"input_types,omitempty"`
+	Object     string            `json:"object"`
+	// OutputTypes lists the content part types the model can produce, when
+	// the provider reports them (from output_modalities).
+	OutputTypes []ContentPartType `json:"output_types,omitempty"`
+	OwnedBy     string            `json:"owned_by"`
 	// ProviderRaw holds the unmodified provider model payload, for
 	// providers that expose fields beyond the normalized ones.
 	ProviderRaw json.RawMessage `json:"provider_raw,omitempty"`
