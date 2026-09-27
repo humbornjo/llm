@@ -19,7 +19,7 @@ import (
 )
 
 // Define tools that the model can call.
-var tools = []anyllm.Tool{
+var tools = []anyllm.ToolInfo{
 	{
 		Type: "function",
 		Function: anyllm.Function{

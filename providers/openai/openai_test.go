@@ -136,7 +136,7 @@ func TestConvertParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model:    "gpt-4",
 			Messages: testutil.SimpleMessages(),
-			Tools:    []providers.Tool{testutil.WeatherTool()},
+			Tools:    []providers.ToolInfo{testutil.WeatherTool()},
 		}
 
 		req := convertParams(params)
@@ -150,7 +150,7 @@ func TestConvertParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model:      "gpt-4",
 			Messages:   testutil.SimpleMessages(),
-			Tools:      []providers.Tool{testutil.WeatherTool()},
+			Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 			ToolChoice: "auto",
 		}
 
@@ -165,7 +165,7 @@ func TestConvertParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model:      "gpt-4",
 			Messages:   testutil.SimpleMessages(),
-			Tools:      []providers.Tool{testutil.WeatherTool()},
+			Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 			ToolChoice: "required",
 		}
 
@@ -180,7 +180,7 @@ func TestConvertParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model:    "gpt-4",
 			Messages: testutil.SimpleMessages(),
-			Tools:    []providers.Tool{testutil.WeatherTool()},
+			Tools:    []providers.ToolInfo{testutil.WeatherTool()},
 			ToolChoice: providers.ToolChoice{
 				Type:     "function",
 				Function: &providers.ToolChoiceFunction{Name: "get_weather"},
@@ -358,7 +358,7 @@ func TestConvertTools(t *testing.T) {
 	t.Run("converts tool with properties and required fields", func(t *testing.T) {
 		t.Parallel()
 
-		tools := []providers.Tool{testutil.WeatherTool()}
+		tools := []providers.ToolInfo{testutil.WeatherTool()}
 		result := convertTools(tools)
 
 		require.Len(t, result, 1)
@@ -387,7 +387,7 @@ func TestConvertTools(t *testing.T) {
 	t.Run("converts tool with multiple parameters", func(t *testing.T) {
 		t.Parallel()
 
-		tools := []providers.Tool{testutil.NewTestCalculatorTool(t)}
+		tools := []providers.ToolInfo{testutil.NewTestCalculatorTool(t)}
 		result := convertTools(tools)
 
 		require.Len(t, result, 1)
@@ -432,7 +432,7 @@ func TestConvertTools(t *testing.T) {
 	t.Run("converts multiple tools", func(t *testing.T) {
 		t.Parallel()
 
-		tools := []providers.Tool{testutil.WeatherTool(), testutil.DateTool()}
+		tools := []providers.ToolInfo{testutil.WeatherTool(), testutil.DateTool()}
 		result := convertTools(tools)
 
 		require.Len(t, result, 2)
@@ -584,7 +584,7 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:      testutil.TestModel("openai"),
 		Messages:   testutil.ToolCallMessages(),
-		Tools:      []providers.Tool{testutil.WeatherTool()},
+		Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice: "auto",
 	}
 
@@ -614,7 +614,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	tools := []providers.Tool{testutil.WeatherTool()}
+	tools := []providers.ToolInfo{testutil.WeatherTool()}
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
@@ -682,7 +682,7 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	tools := []providers.Tool{testutil.NewTestCalculatorTool(t)}
+	tools := []providers.ToolInfo{testutil.NewTestCalculatorTool(t)}
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{

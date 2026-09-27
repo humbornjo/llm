@@ -862,7 +862,7 @@ func convertToolMessage(msg providers.Message) *genai.Content {
 }
 
 // convertTools converts providers tools to Gemini format.
-func convertTools(tools []providers.Tool) []*genai.Tool {
+func convertTools(tools []providers.ToolInfo) []*genai.Tool {
 	declarations := make([]*genai.FunctionDeclaration, 0, len(tools))
 
 	for _, tool := range tools {

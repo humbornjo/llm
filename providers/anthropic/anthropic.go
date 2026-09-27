@@ -568,8 +568,8 @@ func convertStopReason(reason string) string {
 	}
 }
 
-// convertTool converts a providers.Tool to Anthropic format.
-func convertTool(tool providers.Tool) (anthropic.ToolUnionParam, error) {
+// convertTool converts a providers.ToolInfo to Anthropic format.
+func convertTool(tool providers.ToolInfo) (anthropic.ToolUnionParam, error) {
 	inputSchema := anthropic.ToolInputSchemaParam{
 		Type: "object",
 	}
@@ -601,7 +601,7 @@ func convertTool(tool providers.Tool) (anthropic.ToolUnionParam, error) {
 }
 
 // buildToolParam constructs the final ToolUnionParam from tool metadata and schema.
-func buildToolParam(tool providers.Tool, schema anthropic.ToolInputSchemaParam) anthropic.ToolUnionParam {
+func buildToolParam(tool providers.ToolInfo, schema anthropic.ToolInputSchemaParam) anthropic.ToolUnionParam {
 	return anthropic.ToolUnionParam{
 		OfTool: &anthropic.ToolParam{
 			Name:        tool.Function.Name,

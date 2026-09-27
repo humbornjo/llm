@@ -359,7 +359,7 @@ func TestConvertFinishReason(t *testing.T) {
 func TestConvertTools(t *testing.T) {
 	t.Parallel()
 
-	tools := []providers.Tool{
+	tools := []providers.ToolInfo{
 		{
 			Type: "function",
 			Function: providers.Function{

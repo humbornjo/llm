@@ -95,7 +95,7 @@ type Capabilities struct {
 	CompletionImage     bool
 	CompletionPDF       bool
 	CompletionReasoning bool
-	CompletionStreaming  bool
+	CompletionStreaming bool
 	CompletionTools     bool
 	Embedding           bool
 	ListModels          bool
@@ -157,7 +157,7 @@ type CompletionParams struct {
 	Stop              []string        `json:"stop,omitempty"`
 	Stream            bool            `json:"stream,omitempty"`
 	StreamOptions     *StreamOptions  `json:"stream_options,omitempty"`
-	Tools             []Tool          `json:"tools,omitempty"`
+	Tools             []ToolInfo      `json:"tools,omitempty"`
 	ToolChoice        any             `json:"tool_choice,omitempty"`
 	ParallelToolCalls *bool           `json:"parallel_tool_calls,omitempty"`
 	ResponseFormat    *ResponseFormat `json:"response_format,omitempty"`
@@ -333,8 +333,8 @@ type StreamOptions struct {
 	IncludeUsage bool `json:"include_usage,omitempty"`
 }
 
-// Tool represents a tool/function that can be called.
-type Tool struct {
+// ToolInfo describes a tool/function that a model may call.
+type ToolInfo struct {
 	Type     string   `json:"type"`
 	Function Function `json:"function"`
 }

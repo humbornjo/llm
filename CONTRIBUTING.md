@@ -86,9 +86,6 @@ any-llm-go/
 │   ├── deepseek/       # OpenAI-compatible provider (with overrides)
 │   ├── gemini/         # Native SDK provider
 │   ├── groq/           # OpenAI-compatible provider (minimal wrapper)
-│   ├── llamafile/      # OpenAI-compatible provider (local, no API key)
-│   ├── mistral/        # OpenAI-compatible provider (with overrides)
-│   ├── ollama/         # OpenAI-compatible provider (local, no API key)
 │   └── openai/         # Native SDK provider + compatible base
 │       ├── openai.go       # Native OpenAI provider
 │       └── compatible.go   # Shared base for OpenAI-compatible APIs
@@ -213,7 +210,7 @@ Key points:
 
 Some providers are mostly compatible but have quirks: unsupported parameters, different JSON schema handling, required message patching, etc. In these cases, embed the base and override specific methods.
 
-See `providers/deepseek/deepseek.go` or `providers/mistral/mistral.go` as references.
+See `providers/deepseek/deepseek.go` as a reference.
 
 ```go
 // Completion overrides the base to handle provider-specific quirks.
@@ -460,7 +457,6 @@ Within each provider file, follow this ordering:
 
 Use descriptive branch names:
 
-- `feature/add-mistral-provider`
 - `fix/streaming-error-handling`
 - `docs/update-quickstart`
 - `refactor/simplify-error-types`

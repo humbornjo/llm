@@ -599,7 +599,7 @@ func TestConvertTool(t *testing.T) {
 	t.Run("converts tool with no required fields", func(t *testing.T) {
 		t.Parallel()
 
-		tool := providers.Tool{
+		tool := providers.ToolInfo{
 			Type: "function",
 			Function: providers.Function{
 				Name:        "optional_params",
@@ -639,7 +639,7 @@ func TestConvertTool(t *testing.T) {
 	t.Run("returns error for invalid required field type", func(t *testing.T) {
 		t.Parallel()
 
-		tool := providers.Tool{
+		tool := providers.ToolInfo{
 			Type: "function",
 			Function: providers.Function{
 				Name:        "bad_tool",
@@ -661,7 +661,7 @@ func TestConvertTool(t *testing.T) {
 	t.Run("returns error for non-string element in required array", func(t *testing.T) {
 		t.Parallel()
 
-		tool := providers.Tool{
+		tool := providers.ToolInfo{
 			Type: "function",
 			Function: providers.Function{
 				Name:        "mixed_required",
@@ -903,7 +903,7 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:      testutil.TestModel("anthropic"),
 		Messages:   testutil.ToolCallMessages(),
-		Tools:      []providers.Tool{testutil.WeatherTool()},
+		Tools:      []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice: "auto",
 	}
 
@@ -939,7 +939,7 @@ func TestIntegrationCompletionWithToolsParallelDisabled(t *testing.T) {
 		Messages: []providers.Message{
 			{Role: providers.RoleUser, Content: "Get the weather in Paris and London"},
 		},
-		Tools:             []providers.Tool{testutil.WeatherTool()},
+		Tools:             []providers.ToolInfo{testutil.WeatherTool()},
 		ToolChoice:        "auto",
 		ParallelToolCalls: &parallel,
 	}
@@ -962,7 +962,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	tools := []providers.Tool{testutil.WeatherTool()}
+	tools := []providers.ToolInfo{testutil.WeatherTool()}
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
@@ -1030,7 +1030,7 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	tools := []providers.Tool{testutil.NewTestCalculatorTool(t)}
+	tools := []providers.ToolInfo{testutil.NewTestCalculatorTool(t)}
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
@@ -1170,7 +1170,7 @@ func TestIntegrationAgentLoopContinuation(t *testing.T) {
 	params := providers.CompletionParams{
 		Model:    testutil.TestModel("anthropic"),
 		Messages: messages,
-		Tools:    []providers.Tool{testutil.WeatherTool()},
+		Tools:    []providers.ToolInfo{testutil.WeatherTool()},
 	}
 
 	// The model should respond with the weather information.

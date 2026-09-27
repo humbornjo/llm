@@ -202,7 +202,7 @@ response, err := provider.Completion(ctx, anyllm.CompletionParams{
     Messages: []anyllm.Message{
         {Role: anyllm.RoleUser, Content: "What's the weather in Paris?"},
     },
-    Tools: []anyllm.Tool{
+    Tools: []anyllm.ToolInfo{
         {
             Type: "function",
             Function: anyllm.Function{
@@ -230,6 +230,13 @@ if len(response.Choices[0].Message.ToolCalls) > 0 {
     fmt.Printf("Function: %s, Args: %s\n", tc.Function.Name, tc.Function.Arguments)
 }
 ```
+
+`ToolInfo` is the serializable declaration sent to an LLM provider. `Tool` is
+the executable interface used by agent loops and tool dispatchers. An
+implementation supplies its `Info` and `Function`, plus synchronous and
+streaming execution methods. Per-call metadata can be passed with
+`WithToolMetadata`; implementations apply each `ToolOption` directly to a
+zero-value `ToolConfig` before execution.
 
 ### Extended Thinking (Reasoning)
 
