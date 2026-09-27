@@ -32,8 +32,8 @@ any-llm-go supports multiple LLM providers through a unified interface. Each pro
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/anthropic"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/anthropic"
 )
 
 // Using environment variable (ANTHROPIC_API_KEY).
@@ -72,8 +72,8 @@ if response.Choices[0].Message.Reasoning != nil {
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/deepseek"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/deepseek"
 )
 
 // Using environment variable (DEEPSEEK_API_KEY).
@@ -113,8 +113,8 @@ DeepSeek doesn't support `json_schema` response format directly. The provider au
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/gemini"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/gemini"
 )
 
 // Using environment variable (GEMINI_API_KEY or GOOGLE_API_KEY).
@@ -157,8 +157,8 @@ Groq provides fast inference through their cloud API. It exposes an OpenAI-compa
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/groq"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/groq"
 )
 
 // Using environment variable (GROQ_API_KEY).
@@ -191,8 +191,8 @@ resp, err := provider.Completion(ctx, anyllm.CompletionParams{
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/mistral"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/mistral"
 )
 
 // Using environment variable (MISTRAL_API_KEY).
@@ -244,8 +244,8 @@ Llamafile is a single-file executable that bundles a model with llama.cpp for ea
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/llamafile"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/llamafile"
 )
 
 // Using default settings (localhost:8080/v1).
@@ -313,8 +313,8 @@ Ollama is a local LLM server that allows you to run models on your own hardware.
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/ollama"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/ollama"
 )
 
 // Using default settings (localhost:11434).
@@ -374,8 +374,8 @@ llama.cpp offers a local server compatible with the OpenAI API. No API key is re
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/llamacpp"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/llamacpp"
 )
 
 // Using default settings (localhost:8080).
@@ -430,8 +430,8 @@ for _, model := range models.Data {
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 // Using environment variable (OPENAI_API_KEY).
@@ -466,8 +466,8 @@ z.ai provides access to the GLM model family through an OpenAI-compatible API.
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/zai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/zai"
 )
 
 // Using environment variable (ZAI_API_KEY).

@@ -41,7 +41,7 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(github.com/mozilla-ai/any-llm-go)
+        - prefix(github.com/humbornjo/llm)
         - blank
         - dot
         - localmodule

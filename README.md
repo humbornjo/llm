@@ -8,8 +8,8 @@
 
 # any-llm (Go)
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/mozilla-ai/any-llm-go.svg)](https://pkg.go.dev/github.com/mozilla-ai/any-llm-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mozilla-ai/any-llm-go)](https://goreportcard.com/report/github.com/mozilla-ai/any-llm-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/humbornjo/llm.svg)](https://pkg.go.dev/github.com/humbornjo/llm)
+[![Go Report Card](https://goreportcard.com/badge/github.com/humbornjo/llm)](https://goreportcard.com/report/github.com/humbornjo/llm)
 ![Go 1.26+](https://img.shields.io/badge/go-1.26%2B-blue.svg)
 <a href="https://discord.gg/4gf3zXrQUc">
     <img src="https://img.shields.io/static/v1?label=Chat%20on&message=Discord&color=blue&logo=Discord&style=flat-square" alt="Discord">
@@ -22,10 +22,19 @@ Switch between OpenAI, Anthropic, Mistral, Ollama, and more without changing you
 
 </div>
 
+> [!NOTE]
+> This repository is an independent downstream fork of
+> [mozilla-ai/any-llm-go](https://github.com/mozilla-ai/any-llm-go), maintained
+> under the module path `github.com/humbornjo/llm`. The fork preserves the
+> upstream Git history and Apache License 2.0 attribution while allowing its
+> API and provider abstractions to evolve for Fuss independently of upstream.
+> It is not an official Mozilla AI distribution and is not endorsed by Mozilla
+> AI. See [LICENSE](LICENSE) for the applicable terms.
+
 ## Quickstart
 
 ```bash
-go get github.com/mozilla-ai/any-llm-go
+go get github.com/humbornjo/llm
 export OPENAI_API_KEY="YOUR_KEY_HERE"  # or ANTHROPIC_API_KEY, etc
 ```
 
@@ -37,8 +46,8 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 func main() {
@@ -76,9 +85,9 @@ Import the main package and the providers you need:
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"    // OpenAI
-    "github.com/mozilla-ai/any-llm-go/providers/anthropic" // Anthropic
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"    // OpenAI
+    "github.com/humbornjo/llm/providers/anthropic" // Anthropic
 )
 ```
 
@@ -138,8 +147,8 @@ import (
     "fmt"
     "log"
 
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 
 provider, err := openai.New(anyllm.WithAPIKey("your-api-key"))
@@ -271,9 +280,9 @@ The gateway provider supports OpenAI-compatible content moderation. Use
 import (
     stderrors "errors"
 
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/config"
-    "github.com/mozilla-ai/any-llm-go/providers/gateway"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/config"
+    "github.com/humbornjo/llm/providers/gateway"
 )
 
 provider, err := gateway.New(config.WithBaseURL("https://gw.example.com"))

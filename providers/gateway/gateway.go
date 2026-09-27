@@ -27,10 +27,10 @@ import (
 
 	"github.com/openai/openai-go"
 
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/errors"
-	"github.com/mozilla-ai/any-llm-go/providers"
-	openaiProvider "github.com/mozilla-ai/any-llm-go/providers/openai"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/errors"
+	"github.com/humbornjo/llm/providers"
+	openaiProvider "github.com/humbornjo/llm/providers/openai"
 )
 
 // Provider configuration constants.

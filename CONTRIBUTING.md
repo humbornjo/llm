@@ -15,7 +15,7 @@ Thank you for your interest in contributing to any-llm-go! This guide will help 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/mozilla-ai/any-llm-go.git
+   git clone https://github.com/humbornjo/llm.git
    cd any-llm-go
    ```
 
@@ -146,9 +146,9 @@ If the provider is fully OpenAI-compatible with no quirks, the entire implementa
 package newprovider
 
 import (
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/providers"
-	"github.com/mozilla-ai/any-llm-go/providers/openai"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/providers"
+	"github.com/humbornjo/llm/providers/openai"
 )
 
 // Provider configuration constants.
@@ -269,9 +269,9 @@ import (
 
 	"github.com/newprovider/sdk-go"
 
-	"github.com/mozilla-ai/any-llm-go/config"
-	"github.com/mozilla-ai/any-llm-go/errors"
-	"github.com/mozilla-ai/any-llm-go/providers"
+	"github.com/humbornjo/llm/config"
+	"github.com/humbornjo/llm/errors"
+	"github.com/humbornjo/llm/providers"
 )
 
 // Provider configuration constants.
@@ -402,7 +402,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/mozilla-ai/any-llm-go/config"
+	"github.com/humbornjo/llm/config"
 )
 
 func TestNew(t *testing.T) {

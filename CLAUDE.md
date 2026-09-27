@@ -48,8 +48,8 @@ any-llm-go/
 
 ```go
 import (
-    anyllm "github.com/mozilla-ai/any-llm-go"
-    "github.com/mozilla-ai/any-llm-go/providers/openai"
+    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm/providers/openai"
 )
 ```
 
@@ -102,7 +102,7 @@ Providers implement `ErrorConverter` using `errors.As` with SDK typed errors (no
 
 For providers that expose OpenAI-compatible APIs but don't have their own Go SDK (Llamafile, vLLM, LM Studio, etc.):
 - Use the compatible provider in `providers/openai/compatible.go`
-- Import: `"github.com/mozilla-ai/any-llm-go/providers/openai"`
+- Import: `"github.com/humbornjo/llm/providers/openai"`
 - Create thin wrapper that calls `openai.NewCompatible()` with provider-specific `CompatibleConfig`
 - Set ALL `CompatibleConfig` fields explicitly, including empty values (e.g., `BaseURLEnvVar: ""`, `DefaultAPIKey: ""`)
 - Add interface assertions in the wrapper package
