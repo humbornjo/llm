@@ -1051,8 +1051,17 @@ func TestGemini_StreamStateProcessResponse(t *testing.T) {
 		require.NoError(t, err)
 		resp := &genai.GenerateContentResponse{
 			UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-				PromptTokenCount:     10,
-				CandidatesTokenCount: 5,
+				PromptTokenCount:        10,
+				CandidatesTokenCount:    5,
+				ThoughtsTokenCount:      3,
+				CachedContentTokenCount: 4,
+				TotalTokenCount:         18,
+				PromptTokensDetails: []*genai.ModalityTokenCount{
+					{Modality: genai.MediaModalityAudio, TokenCount: 2},
+				},
+				CandidatesTokensDetails: []*genai.ModalityTokenCount{
+					{Modality: genai.MediaModalityAudio, TokenCount: 1},
+				},
 			},
 			Candidates: []*genai.Candidate{{
 				Content: &genai.Content{
@@ -1066,7 +1075,11 @@ func TestGemini_StreamStateProcessResponse(t *testing.T) {
 		require.NotNil(t, state.usage)
 		require.Equal(t, 10, state.usage.PromptTokens)
 		require.Equal(t, 5, state.usage.CompletionTokens)
-		require.Equal(t, 15, state.usage.TotalTokens)
+		require.Equal(t, 18, state.usage.TotalTokens)
+		require.Equal(t, 2, *state.usage.PromptTokensDetails.AudioTokens)
+		require.Equal(t, 4, *state.usage.PromptTokensDetails.CachedTokens)
+		require.Equal(t, 1, *state.usage.CompletionTokenDetails.AudioTokens)
+		require.Equal(t, 3, *state.usage.CompletionTokenDetails.ReasoningTokens)
 	})
 
 	t.Run("captures thought signature on function call", func(t *testing.T) {
@@ -1273,8 +1286,17 @@ func TestGemini_ConvertResponse(t *testing.T) {
 				FinishReason: genai.FinishReasonStop,
 			}},
 			UsageMetadata: &genai.GenerateContentResponseUsageMetadata{
-				PromptTokenCount:     10,
-				CandidatesTokenCount: 5,
+				PromptTokenCount:        10,
+				CandidatesTokenCount:    5,
+				ThoughtsTokenCount:      3,
+				CachedContentTokenCount: 4,
+				TotalTokenCount:         18,
+				PromptTokensDetails: []*genai.ModalityTokenCount{
+					{Modality: genai.MediaModalityAudio, TokenCount: 2},
+				},
+				CandidatesTokensDetails: []*genai.ModalityTokenCount{
+					{Modality: genai.MediaModalityAudio, TokenCount: 1},
+				},
 			},
 		}
 
@@ -1289,7 +1311,11 @@ func TestGemini_ConvertResponse(t *testing.T) {
 		require.NotNil(t, result.Usage)
 		require.Equal(t, 10, result.Usage.PromptTokens)
 		require.Equal(t, 5, result.Usage.CompletionTokens)
-		require.Equal(t, 15, result.Usage.TotalTokens)
+		require.Equal(t, 18, result.Usage.TotalTokens)
+		require.Equal(t, 2, *result.Usage.PromptTokensDetails.AudioTokens)
+		require.Equal(t, 4, *result.Usage.PromptTokensDetails.CachedTokens)
+		require.Equal(t, 1, *result.Usage.CompletionTokenDetails.AudioTokens)
+		require.Equal(t, 3, *result.Usage.CompletionTokenDetails.ReasoningTokens)
 	})
 
 	t.Run("converts function call response", func(t *testing.T) {

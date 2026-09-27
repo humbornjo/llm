@@ -240,10 +240,10 @@ func MockChatCompletionWithReasoning(content, reasoning string) *providers.ChatC
 			},
 		},
 		Usage: &providers.Usage{
-			PromptTokens:     10,
-			CompletionTokens: 50,
-			TotalTokens:      60,
-			ReasoningTokens:  30,
+			PromptTokens:           10,
+			CompletionTokens:       50,
+			TotalTokens:            60,
+			CompletionTokenDetails: &providers.CompletionTokensDetails{ReasoningTokens: new(30)},
 		},
 	}
 }
