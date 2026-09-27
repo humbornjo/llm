@@ -95,16 +95,15 @@ type ReasoningEffort string
 
 // Capabilities describes what features a provider supports.
 type Capabilities struct {
-	Completion          bool
-	CompletionImage     bool
-	CompletionPDF       bool
-	CompletionReasoning bool
-	CompletionStreaming bool
-	CompletionTools     bool
 	Embedding           bool
 	ListModels          bool
 	Moderation          bool
 	Rerank              bool
+	Completion          bool
+	CompletionReasoning bool
+	CompletionStreaming bool
+	CompletionTools     bool
+	CompletionTypes     []ContentPartType
 }
 
 // ChatCompletion represents a chat completion response in OpenAI format.

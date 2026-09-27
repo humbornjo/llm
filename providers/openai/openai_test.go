@@ -57,10 +57,15 @@ func TestOpenAI_Capabilities(t *testing.T) {
 	caps := provider.Capabilities()
 
 	require.True(t, caps.Completion)
-	require.True(t, caps.CompletionImage)
 	require.True(t, caps.CompletionReasoning)
 	require.True(t, caps.CompletionStreaming)
 	require.True(t, caps.CompletionTools)
+	require.ElementsMatch(t, []providers.ContentPartType{
+		providers.CONTENT_PART_TEXT,
+		providers.CONTENT_PART_IMAGE_URL,
+		providers.CONTENT_PART_INPUT_AUDIO,
+		providers.CONTENT_PART_FILE,
+	}, caps.CompletionTypes)
 	require.True(t, caps.Embedding)
 	require.True(t, caps.ListModels)
 }
