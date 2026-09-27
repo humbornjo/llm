@@ -1,6 +1,6 @@
 # Supported Providers
 
-any-llm-go supports multiple LLM providers through a unified interface. Each provider is implemented as a separate package.
+llm supports multiple LLM providers through a unified interface. Each provider is implemented as a separate package.
 
 ## Provider Status
 
@@ -28,7 +28,7 @@ any-llm-go supports multiple LLM providers through a unified interface. Each pro
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/anthropic"
 )
 
@@ -36,7 +36,7 @@ import (
 provider, err := anthropic.New()
 
 // Or with explicit API key.
-provider, err := anthropic.New(anyllm.WithAPIKey("sk-ant-..."))
+provider, err := anthropic.New(llm.WithAPIKey("sk-ant-..."))
 ```
 
 **Environment Variable:** `ANTHROPIC_API_KEY`
@@ -52,10 +52,10 @@ provider, err := anthropic.New(anyllm.WithAPIKey("sk-ant-..."))
 Anthropic's Claude models support extended thinking for complex reasoning tasks:
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "claude-sonnet-4-20250514",
     Messages: messages,
-    ReasoningEffort: anyllm.ReasoningEffortMedium, // low, medium, or high
+    ReasoningEffort: llm.REASONING_EFFORT_MEDIUM, // low, medium, or high
 })
 
 // Access the thinking content.
@@ -68,7 +68,7 @@ if response.Choices[0].Message.Reasoning != nil {
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/deepseek"
 )
 
@@ -76,7 +76,7 @@ import (
 provider, err := deepseek.New()
 
 // Or with explicit API key.
-provider, err := deepseek.New(anyllm.WithAPIKey("sk-..."))
+provider, err := deepseek.New(llm.WithAPIKey("sk-..."))
 ```
 
 **Environment Variable:** `DEEPSEEK_API_KEY`
@@ -90,10 +90,10 @@ provider, err := deepseek.New(anyllm.WithAPIKey("sk-..."))
 DeepSeek R1 supports extended thinking for complex reasoning tasks:
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "deepseek-reasoner",
     Messages: messages,
-    ReasoningEffort: anyllm.ReasoningEffortMedium,
+    ReasoningEffort: llm.REASONING_EFFORT_MEDIUM,
 })
 
 if response.Choices[0].Message.Reasoning != nil {
@@ -109,7 +109,7 @@ DeepSeek doesn't support `json_schema` response format directly. The provider au
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/gemini"
 )
 
@@ -117,7 +117,7 @@ import (
 provider, err := gemini.New()
 
 // Or with explicit API key.
-provider, err := gemini.New(anyllm.WithAPIKey("your-key"))
+provider, err := gemini.New(llm.WithAPIKey("your-key"))
 ```
 
 **Environment Variables:** `GEMINI_API_KEY` or `GOOGLE_API_KEY`
@@ -135,10 +135,10 @@ provider, err := gemini.New(anyllm.WithAPIKey("your-key"))
 Gemini models support extended thinking for complex reasoning tasks:
 
 ```go
-response, err := provider.Completion(ctx, anyllm.CompletionParams{
+response, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "gemini-3-flash-preview",
     Messages: messages,
-    ReasoningEffort: anyllm.ReasoningEffortMedium, // low, medium, or high
+    ReasoningEffort: llm.REASONING_EFFORT_MEDIUM, // low, medium, or high
 })
 
 // Access the thinking content.
@@ -153,7 +153,7 @@ Groq provides fast inference through their cloud API. It exposes an OpenAI-compa
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/groq"
 )
 
@@ -161,7 +161,7 @@ import (
 provider, err := groq.New()
 
 // Or with explicit API key.
-provider, err := groq.New(anyllm.WithAPIKey("gsk_..."))
+provider, err := groq.New(llm.WithAPIKey("gsk_..."))
 ```
 
 **Environment Variable:** `GROQ_API_KEY`
@@ -175,10 +175,10 @@ provider, err := groq.New(anyllm.WithAPIKey("gsk_..."))
 
 ```go
 provider, _ := groq.New()
-resp, err := provider.Completion(ctx, anyllm.CompletionParams{
+resp, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "llama-3.1-8b-instant",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Hello!"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Hello!"},
     },
 })
 ```
@@ -187,7 +187,7 @@ resp, err := provider.Completion(ctx, anyllm.CompletionParams{
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/openai"
 )
 
@@ -195,12 +195,12 @@ import (
 provider, err := openai.New()
 
 // Or with explicit API key.
-provider, err := openai.New(anyllm.WithAPIKey("sk-..."))
+provider, err := openai.New(llm.WithAPIKey("sk-..."))
 
 // Or with custom base URL (for Azure, proxies, etc.).
 provider, err := openai.New(
-    anyllm.WithAPIKey("your-key"),
-    anyllm.WithBaseURL("https://your-endpoint.openai.azure.com"),
+    llm.WithAPIKey("your-key"),
+    llm.WithBaseURL("https://your-endpoint.openai.azure.com"),
 )
 ```
 
@@ -223,7 +223,7 @@ z.ai provides access to the GLM model family through an OpenAI-compatible API.
 
 ```go
 import (
-    anyllm "github.com/humbornjo/llm"
+    "github.com/humbornjo/llm"
     "github.com/humbornjo/llm/providers/zai"
 )
 
@@ -231,7 +231,7 @@ import (
 provider, err := zai.New()
 
 // Or with explicit API key.
-provider, err := zai.New(anyllm.WithAPIKey("your-key"))
+provider, err := zai.New(llm.WithAPIKey("your-key"))
 ```
 
 **Environment Variable:** `ZAI_API_KEY`
@@ -247,10 +247,10 @@ provider, err := zai.New(anyllm.WithAPIKey("your-key"))
 
 ```go
 provider, _ := zai.New()
-resp, err := provider.Completion(ctx, anyllm.CompletionParams{
+resp, err := provider.Completion(ctx, llm.CompletionParams{
     Model: "glm-4.6",
-    Messages: []anyllm.Message{
-        {Role: anyllm.RoleUser, Content: "Hello!"},
+    Messages: []llm.Message{
+        {Role: llm.ROLE_USER, Content: "Hello!"},
     },
 })
 ```

@@ -1,4 +1,4 @@
-// Package anthropic provides an Anthropic provider implementation for any-llm.
+// Package anthropic provides an Anthropic provider implementation for llm.
 package anthropic
 
 import (
@@ -19,60 +19,60 @@ import (
 
 // Provider configuration constants.
 const (
-	defaultMaxTokens = 4096
-	envAPIKey        = "ANTHROPIC_API_KEY"
-	envBaseURL       = "ANTHROPIC_BASE_URL"
-	providerName     = "anthropic"
+	_DEFAULT_MAX_TOKENS = 4096
+	_ENV_API_KEY        = "ANTHROPIC_API_KEY"
+	_ENV_BASE_URL       = "ANTHROPIC_BASE_URL"
+	_PROVIDER_NAME      = "anthropic"
 )
 
 // Anthropic content block types.
 const (
-	blockTypeText     = "text"
-	blockTypeThinking = "thinking"
-	blockTypeToolUse  = "tool_use"
+	_BLOCK_TYPE_TEXT     = "text"
+	_BLOCK_TYPE_THINKING = "thinking"
+	_BLOCK_TYPE_TOOL_USE = "tool_use"
 )
 
 // Anthropic delta types.
 const (
-	deltaTypeInputJSON = "input_json_delta"
-	deltaTypeText      = "text_delta"
-	deltaTypeThinking  = "thinking_delta"
+	_DELTA_TYPE_INPUT_JSON = "input_json_delta"
+	_DELTA_TYPE_TEXT       = "text_delta"
+	_DELTA_TYPE_THINKING   = "thinking_delta"
 )
 
 // Anthropic error response patterns (checked in raw JSON).
 const (
-	errorPatternContextLength = "context_length"
-	errorPatternToken         = "token"
-	errorPatternContent       = "content"
-	errorPatternSafety        = "safety"
+	_ERROR_PATTERN_CONTEXT_LENGTH = "context_length"
+	_ERROR_PATTERN_TOKEN          = "token"
+	_ERROR_PATTERN_CONTENT        = "content"
+	_ERROR_PATTERN_SAFETY         = "safety"
 )
 
 // Anthropic streaming event types.
 const (
-	eventContentBlockDelta = "content_block_delta"
-	eventContentBlockStart = "content_block_start"
-	eventMessageDelta      = "message_delta"
-	eventMessageStart      = "message_start"
+	_EVENT_CONTENT_BLOCK_DELTA = "content_block_delta"
+	_EVENT_CONTENT_BLOCK_START = "content_block_start"
+	_EVENT_MESSAGE_DELTA       = "message_delta"
+	_EVENT_MESSAGE_START       = "message_start"
 )
 
 // Anthropic stop reasons.
 const (
-	stopReasonEndTurn      = "end_turn"
-	stopReasonMaxTokens    = "max_tokens"
-	stopReasonStopSequence = "stop_sequence"
-	stopReasonToolUse      = "tool_use"
+	_STOP_REASON_END_TURN      = "end_turn"
+	_STOP_REASON_MAX_TOKENS    = "max_tokens"
+	_STOP_REASON_STOP_SEQUENCE = "stop_sequence"
+	_STOP_REASON_TOOL_USE      = "tool_use"
 )
 
 // JSON schema field names.
 const (
-	schemaFieldProperties = "properties"
-	schemaFieldRequired   = "required"
+	_SCHEMA_FIELD_PROPERTIES = "properties"
+	_SCHEMA_FIELD_REQUIRED   = "required"
 )
 
 // Response format types.
 const (
-	responseFormatJSONObject = "json_object"
-	responseFormatJSONSchema = "json_schema"
+	_RESPONSE_FORMAT_JSON_OBJECT = "json_object"
+	_RESPONSE_FORMAT_JSON_SCHEMA = "json_schema"
 )
 
 // Ensure Provider implements the required interfaces.
@@ -107,12 +107,12 @@ func New(opts ...config.Option) (*Provider, error) {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
-	apiKey := cfg.ResolveAPIKey(envAPIKey)
+	apiKey := cfg.ResolveAPIKey(_ENV_API_KEY)
 	if apiKey == "" {
-		return nil, errors.NewMissingAPIKeyError(providerName, envAPIKey)
+		return nil, errors.NewMissingAPIKeyError(_PROVIDER_NAME, _ENV_API_KEY)
 	}
 
-	baseURL, err := cfg.ResolveBaseURL(envBaseURL, "")
+	baseURL, err := cfg.ResolveBaseURL(_ENV_BASE_URL, "")
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (p *Provider) Completion(
 func (p *Provider) convertParams(params providers.CompletionParams) (anthropic.MessageNewParams, error) {
 	messages, system := convertMessages(params.Messages)
 
-	maxTokens := int64(defaultMaxTokens)
+	maxTokens := int64(_DEFAULT_MAX_TOKENS)
 	if params.MaxTokens != nil {
 		maxTokens = int64(*params.MaxTokens)
 	}
@@ -253,22 +253,22 @@ func (p *Provider) CompletionStream(
 			event := stream.Current()
 
 			switch event.Type {
-			case eventMessageStart:
+			case _EVENT_MESSAGE_START:
 				if !yield(state.handleMessageStart(event.AsMessageStart()), nil) {
 					return
 				}
 
-			case eventContentBlockStart:
+			case _EVENT_CONTENT_BLOCK_START:
 				state.handleContentBlockStart(event.AsContentBlockStart())
 
-			case eventContentBlockDelta:
+			case _EVENT_CONTENT_BLOCK_DELTA:
 				if chunk := state.handleContentBlockDelta(event.AsContentBlockDelta()); chunk != nil {
 					if !yield(*chunk, nil) {
 						return
 					}
 				}
 
-			case eventMessageDelta:
+			case _EVENT_MESSAGE_DELTA:
 				if !yield(state.handleMessageDelta(event.AsMessageDelta()), nil) {
 					return
 				}
@@ -285,7 +285,7 @@ func (p *Provider) CompletionStream(
 
 // Name returns the provider name.
 func (p *Provider) Name() string {
-	return providerName
+	return _PROVIDER_NAME
 }
 
 // newStreamState creates a new stream state with default values.
@@ -311,11 +311,11 @@ func (s *streamState) chunk(delta providers.ChunkDelta) providers.ChatCompletion
 // handleContentBlockDelta processes a content_block_delta event and returns a chunk if applicable.
 func (s *streamState) handleContentBlockDelta(event anthropic.ContentBlockDeltaEvent) *providers.ChatCompletionChunk {
 	switch event.Delta.Type {
-	case deltaTypeText:
+	case _DELTA_TYPE_TEXT:
 		return s.handleTextDelta(event.Delta.Text)
-	case deltaTypeThinking:
+	case _DELTA_TYPE_THINKING:
 		return s.handleThinkingDelta(event.Delta.Thinking)
-	case deltaTypeInputJSON:
+	case _DELTA_TYPE_INPUT_JSON:
 		return s.handleInputJSONDelta(event.Delta.PartialJSON)
 	default:
 		return nil
@@ -325,9 +325,9 @@ func (s *streamState) handleContentBlockDelta(event anthropic.ContentBlockDeltaE
 // handleContentBlockStart processes a content_block_start event.
 func (s *streamState) handleContentBlockStart(event anthropic.ContentBlockStartEvent) {
 	switch event.ContentBlock.Type {
-	case blockTypeThinking:
+	case _BLOCK_TYPE_THINKING:
 		// Reasoning block started - no action needed.
-	case blockTypeToolUse:
+	case _BLOCK_TYPE_TOOL_USE:
 		s.currentToolIdx++
 		// TODO: Extract to newToolCallFromBlock() if this pattern is needed elsewhere.
 		tc := providers.ToolCall{
@@ -373,7 +373,7 @@ func (s *streamState) handleMessageStart(event anthropic.MessageStartEvent) prov
 	s.model = string(event.Message.Model)
 	s.inputUsage = event.Message.Usage.InputTokens
 
-	return s.chunk(providers.ChunkDelta{Role: providers.RoleAssistant})
+	return s.chunk(providers.ChunkDelta{Role: providers.ROLE_ASSISTANT})
 }
 
 // handleThinkingDelta processes a thinking delta and returns a chunk.
@@ -394,7 +394,7 @@ func (s *streamState) handleTextDelta(text string) *providers.ChatCompletionChun
 
 // applyThinking configures thinking/reasoning on the request if applicable.
 func applyThinking(req *anthropic.MessageNewParams, effort providers.ReasoningEffort, maxTokens int64) {
-	if effort == "" || effort == providers.ReasoningEffortNone {
+	if effort == "" || effort == providers.REASONING_EFFORT_NONE {
 		return
 	}
 
@@ -418,7 +418,7 @@ func applyResponseFormat(req *anthropic.MessageNewParams, format *providers.Resp
 		return
 	}
 	switch format.Type {
-	case responseFormatJSONSchema:
+	case _RESPONSE_FORMAT_JSON_SCHEMA:
 		// JSONOutputFormatParam only carries Schema and Type; Name, Description, and Strict
 		// from providers.JSONSchema are not supported by the Anthropic API.
 		req.OutputConfig = anthropic.OutputConfigParam{
@@ -426,7 +426,7 @@ func applyResponseFormat(req *anthropic.MessageNewParams, format *providers.Resp
 				Schema: format.JSONSchema.Schema,
 			},
 		}
-	case responseFormatJSONObject:
+	case _RESPONSE_FORMAT_JSON_OBJECT:
 		// Anthropic requires a schema for structured output; json_object without a schema
 		// is not supported. No-op to preserve forward compatibility.
 	}
@@ -477,11 +477,11 @@ func convertImagePart(img *providers.ImageURL) anthropic.ContentBlockParamUnion 
 // convertMessage converts a single message to Anthropic format.
 func convertMessage(msg providers.Message) *anthropic.MessageParam {
 	switch msg.Role {
-	case providers.RoleUser:
+	case providers.ROLE_USER:
 		return convertUserMessage(msg)
-	case providers.RoleAssistant:
+	case providers.ROLE_ASSISTANT:
 		return convertAssistantMessage(msg)
-	case providers.RoleTool:
+	case providers.ROLE_TOOL:
 		return convertToolMessage(msg)
 	default:
 		return nil
@@ -495,7 +495,7 @@ func convertMessages(messages []providers.Message) ([]anthropic.MessageParam, st
 	var systemParts []string
 
 	for _, msg := range messages {
-		if msg.Role == providers.RoleSystem {
+		if msg.Role == providers.ROLE_SYSTEM {
 			systemParts = append(systemParts, msg.ContentString())
 			continue
 		}
@@ -516,13 +516,13 @@ func convertResponse(resp *anthropic.Message) *providers.ChatCompletion {
 
 	for _, block := range resp.Content {
 		switch block.Type {
-		case blockTypeText:
+		case _BLOCK_TYPE_TEXT:
 			content += block.Text
-		case blockTypeThinking:
+		case _BLOCK_TYPE_THINKING:
 			reasoning = &providers.Reasoning{
 				Content: block.Thinking,
 			}
-		case blockTypeToolUse:
+		case _BLOCK_TYPE_TOOL_USE:
 			inputJSON := ""
 			if block.Input != nil {
 				if inputBytes, err := json.Marshal(block.Input); err == nil {
@@ -541,8 +541,8 @@ func convertResponse(resp *anthropic.Message) *providers.ChatCompletion {
 	}
 
 	message := providers.Message{
-		Role:      providers.RoleAssistant,
-		Content:   content,
+		Role:      providers.ROLE_ASSISTANT,
+		Content:   providers.ContentFromString(content),
 		ToolCalls: toolCalls,
 		Reasoning: reasoning,
 	}
@@ -569,16 +569,16 @@ func convertResponse(resp *anthropic.Message) *providers.ChatCompletion {
 // convertStopReason converts Anthropic stop reason to OpenAI finish reason.
 func convertStopReason(reason string) string {
 	switch reason {
-	case stopReasonEndTurn:
-		return providers.FinishReasonStop
-	case stopReasonMaxTokens:
-		return providers.FinishReasonLength
-	case stopReasonToolUse:
-		return providers.FinishReasonToolCalls
-	case stopReasonStopSequence:
-		return providers.FinishReasonStop
+	case _STOP_REASON_END_TURN:
+		return providers.FINISH_REASON_STOP
+	case _STOP_REASON_MAX_TOKENS:
+		return providers.FINISH_REASON_LENGTH
+	case _STOP_REASON_TOOL_USE:
+		return providers.FINISH_REASON_TOOL_CALLS
+	case _STOP_REASON_STOP_SEQUENCE:
+		return providers.FINISH_REASON_STOP
 	default:
-		return providers.FinishReasonStop
+		return providers.FINISH_REASON_STOP
 	}
 }
 
@@ -592,11 +592,11 @@ func convertTool(tool providers.ToolInfo) (anthropic.ToolUnionParam, error) {
 		return buildToolParam(tool, inputSchema), nil
 	}
 
-	if props, ok := tool.Function.Parameters[schemaFieldProperties]; ok {
+	if props, ok := tool.Function.Parameters[_SCHEMA_FIELD_PROPERTIES]; ok {
 		inputSchema.Properties = props
 	}
 
-	req, ok := tool.Function.Parameters[schemaFieldRequired]
+	req, ok := tool.Function.Parameters[_SCHEMA_FIELD_REQUIRED]
 	if !ok {
 		return buildToolParam(tool, inputSchema), nil
 	}
@@ -699,10 +699,10 @@ func convertUserMessage(msg providers.Message) *anthropic.MessageParam {
 
 	content := make([]anthropic.ContentBlockParamUnion, 0)
 	for _, part := range msg.ContentParts() {
-		switch part.Type {
-		case "text":
+		switch part := part.(type) {
+		case *providers.ContentPartText:
 			content = append(content, anthropic.NewTextBlock(part.Text))
-		case "image_url":
+		case *providers.ContentPartImage:
 			if part.ImageURL != nil {
 				content = append(content, convertImagePart(part.ImageURL))
 			}
@@ -716,11 +716,11 @@ func convertUserMessage(msg providers.Message) *anthropic.MessageParam {
 // Returns the budget and true if the effort level is supported, or 0 and false otherwise.
 func thinkingBudget(effort providers.ReasoningEffort) (int64, bool) {
 	switch effort {
-	case providers.ReasoningEffortLow:
+	case providers.REASONING_EFFORT_LOW:
 		return 1024, true
-	case providers.ReasoningEffortMedium:
+	case providers.REASONING_EFFORT_MEDIUM:
 		return 4096, true
-	case providers.ReasoningEffortHigh:
+	case providers.REASONING_EFFORT_HIGH:
 		return 16384, true
 	default:
 		return 0, false
@@ -759,33 +759,33 @@ func (p *Provider) ConvertError(err error) error {
 	// If it's not an API error (e.g., network error), wrap as generic provider error.
 	var apiErr *anthropic.Error
 	if !stderrors.As(err, &apiErr) {
-		return errors.NewProviderError(providerName, err)
+		return errors.NewProviderError(_PROVIDER_NAME, err)
 	}
 
 	// Classify by HTTP status code.
 	switch apiErr.StatusCode {
 	case 401:
-		return errors.NewAuthenticationError(providerName, err)
+		return errors.NewAuthenticationError(_PROVIDER_NAME, err)
 	case 429:
-		return errors.NewRateLimitError(providerName, err)
+		return errors.NewRateLimitError(_PROVIDER_NAME, err)
 	case 404:
-		return errors.NewModelNotFoundError(providerName, err)
+		return errors.NewModelNotFoundError(_PROVIDER_NAME, err)
 	case 400:
 		// Anthropic uses 400 for various client errors.
 		// Check the raw JSON for context length indicators.
 		rawJSON := apiErr.RawJSON()
-		if strings.Contains(rawJSON, errorPatternContextLength) || strings.Contains(rawJSON, errorPatternToken) {
-			return errors.NewContextLengthError(providerName, err)
+		if strings.Contains(rawJSON, _ERROR_PATTERN_CONTEXT_LENGTH) || strings.Contains(rawJSON, _ERROR_PATTERN_TOKEN) {
+			return errors.NewContextLengthError(_PROVIDER_NAME, err)
 		}
-		return errors.NewInvalidRequestError(providerName, err)
+		return errors.NewInvalidRequestError(_PROVIDER_NAME, err)
 	case 403:
 		// Forbidden - could be content filter or permission issue.
 		rawJSON := apiErr.RawJSON()
-		if strings.Contains(rawJSON, errorPatternContent) || strings.Contains(rawJSON, errorPatternSafety) {
-			return errors.NewContentFilterError(providerName, err)
+		if strings.Contains(rawJSON, _ERROR_PATTERN_CONTENT) || strings.Contains(rawJSON, _ERROR_PATTERN_SAFETY) {
+			return errors.NewContentFilterError(_PROVIDER_NAME, err)
 		}
-		return errors.NewAuthenticationError(providerName, err)
+		return errors.NewAuthenticationError(_PROVIDER_NAME, err)
 	default:
-		return errors.NewProviderError(providerName, err)
+		return errors.NewProviderError(_PROVIDER_NAME, err)
 	}
 }

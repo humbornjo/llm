@@ -1,4 +1,4 @@
-// Package openai provides an OpenAI provider implementation for any-llm.
+// Package openai provides an OpenAI provider implementation for llm.
 // It also exports a base provider for other OpenAI-compatible services.
 package openai
 
@@ -19,33 +19,30 @@ import (
 
 // OpenAI API error codes.
 const (
-	apiCodeContentFilter         = "content_filter"
-	apiCodeContentPolicyViolated = "content_policy_violation"
-	apiCodeContextLengthExceeded = "context_length_exceeded"
-	apiCodeInvalidAPIKey         = "invalid_api_key"
-	apiCodeModelNotFound         = "model_not_found"
-	apiCodeRateLimitExceeded     = "rate_limit_exceeded"
+	_API_CODE_CONTENT_FILTER          = "content_filter"
+	_API_CODE_CONTENT_POLICY_VIOLATED = "content_policy_violation"
+	_API_CODE_CONTEXT_LENGTH_EXCEEDED = "context_length_exceeded"
+	_API_CODE_INVALID_API_KEY         = "invalid_api_key"
+	_API_CODE_MODEL_NOT_FOUND         = "model_not_found"
+	_API_CODE_RATE_LIMIT_EXCEEDED     = "rate_limit_exceeded"
 )
 
 // Object type constants.
 const (
-	objectChatCompletion      = "chat.completion"
-	objectChatCompletionChunk = "chat.completion.chunk"
-	objectEmbedding           = "embedding"
-	objectList                = "list"
-	objectModel               = "model"
+	_OBJECT_CHAT_COMPLETION       = "chat.completion"
+	_OBJECT_CHAT_COMPLETION_CHUNK = "chat.completion.chunk"
+	_OBJECT_EMBEDDING             = "embedding"
+	_OBJECT_LIST                  = "list"
+	_OBJECT_MODEL                 = "model"
 )
 
 // Content part types.
-const (
-	contentTypeImageURL = "image_url"
-	contentTypeText     = "text"
-)
+const ()
 
 // Response format types.
 const (
-	responseFormatJSONObject = "json_object"
-	responseFormatJSONSchema = "json_schema"
+	_RESPONSE_FORMAT_JSON_OBJECT = "json_object"
+	_RESPONSE_FORMAT_JSON_SCHEMA = "json_schema"
 )
 
 // CompatibleConfig contains the configuration for an OpenAI-compatible provider.
@@ -275,14 +272,14 @@ func (p *CompatibleProvider) ListModels(ctx context.Context) (*providers.ModelsR
 	for _, model := range resp.Data {
 		models = append(models, providers.Model{
 			ID:      model.ID,
-			Object:  objectModel,
+			Object:  _OBJECT_MODEL,
 			Created: model.Created,
 			OwnedBy: string(model.OwnedBy),
 		})
 	}
 
 	return &providers.ModelsResponse{
-		Object: objectList,
+		Object: _OBJECT_LIST,
 		Data:   models,
 	}, nil
 }
@@ -296,10 +293,10 @@ func (p *CompatibleProvider) Name() string {
 func convertAPIError(name string, apiErr *openai.Error, originalErr error) error {
 	switch apiErr.StatusCode {
 	case 400:
-		if apiErr.Code == apiCodeContextLengthExceeded {
+		if apiErr.Code == _API_CODE_CONTEXT_LENGTH_EXCEEDED {
 			return errors.NewContextLengthError(name, originalErr)
 		}
-		if apiErr.Code == apiCodeContentFilter || apiErr.Code == apiCodeContentPolicyViolated {
+		if apiErr.Code == _API_CODE_CONTENT_FILTER || apiErr.Code == _API_CODE_CONTENT_POLICY_VIOLATED {
 			return errors.NewContentFilterError(name, originalErr)
 		}
 		return errors.NewInvalidRequestError(name, originalErr)
@@ -313,11 +310,11 @@ func convertAPIError(name string, apiErr *openai.Error, originalErr error) error
 
 	// Check error code for additional classification.
 	switch apiErr.Code {
-	case apiCodeInvalidAPIKey:
+	case _API_CODE_INVALID_API_KEY:
 		return errors.NewAuthenticationError(name, originalErr)
-	case apiCodeModelNotFound:
+	case _API_CODE_MODEL_NOT_FOUND:
 		return errors.NewModelNotFoundError(name, originalErr)
-	case apiCodeRateLimitExceeded:
+	case _API_CODE_RATE_LIMIT_EXCEEDED:
 		return errors.NewRateLimitError(name, originalErr)
 	}
 
@@ -381,7 +378,7 @@ func convertChunk(chunk *openai.ChatCompletionChunk) providers.ChatCompletionChu
 
 	result := providers.ChatCompletionChunk{
 		ID:                chunk.ID,
-		Object:            objectChatCompletionChunk,
+		Object:            _OBJECT_CHAT_COMPLETION_CHUNK,
 		Created:           chunk.Created,
 		Model:             chunk.Model,
 		Choices:           choices,
@@ -443,14 +440,14 @@ func convertEmbeddingResponse(resp *openai.CreateEmbeddingResponse) *providers.E
 		embedding := make([]float64, len(d.Embedding))
 		copy(embedding, d.Embedding)
 		data = append(data, providers.EmbeddingData{
-			Object:    objectEmbedding,
+			Object:    _OBJECT_EMBEDDING,
 			Embedding: embedding,
 			Index:     int(d.Index),
 		})
 	}
 
 	result := &providers.EmbeddingResponse{
-		Object: objectList,
+		Object: _OBJECT_LIST,
 		Data:   data,
 		Model:  resp.Model,
 	}
@@ -468,13 +465,13 @@ func convertEmbeddingResponse(resp *openai.CreateEmbeddingResponse) *providers.E
 // convertMessage converts a single message to OpenAI format.
 func convertMessage(msg providers.Message) (openai.ChatCompletionMessageParamUnion, error) {
 	switch msg.Role {
-	case providers.RoleAssistant:
+	case providers.ROLE_ASSISTANT:
 		return convertAssistantMessage(msg), nil
-	case providers.RoleSystem:
+	case providers.ROLE_SYSTEM:
 		return openai.SystemMessage(msg.ContentString()), nil
-	case providers.RoleTool:
+	case providers.ROLE_TOOL:
 		return openai.ToolMessage(msg.ContentString(), msg.ToolCallID), nil
-	case providers.RoleUser:
+	case providers.ROLE_USER:
 		return convertUserMessage(msg), nil
 	default:
 		return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf("unknown message role: %q", msg.Role)
@@ -545,7 +542,7 @@ func convertParams(params providers.CompletionParams) openai.ChatCompletionNewPa
 		req.User = openai.String(params.User)
 	}
 
-	if params.ReasoningEffort != "" && params.ReasoningEffort != providers.ReasoningEffortNone {
+	if params.ReasoningEffort != "" && params.ReasoningEffort != providers.REASONING_EFFORT_NONE {
 		req.ReasoningEffort = shared.ReasoningEffort(params.ReasoningEffort)
 	}
 
@@ -571,7 +568,7 @@ func convertResponse(resp *openai.ChatCompletion) *providers.ChatCompletion {
 
 	result := &providers.ChatCompletion{
 		ID:                resp.ID,
-		Object:            objectChatCompletion,
+		Object:            _OBJECT_CHAT_COMPLETION,
 		Created:           resp.Created,
 		Model:             resp.Model,
 		Choices:           choices,
@@ -599,11 +596,11 @@ func convertResponseFormat(format *providers.ResponseFormat) openai.ChatCompleti
 	}
 
 	switch format.Type {
-	case responseFormatJSONObject:
+	case _RESPONSE_FORMAT_JSON_OBJECT:
 		return openai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONObject: &openai.ResponseFormatJSONObjectParam{},
 		}
-	case responseFormatJSONSchema:
+	case _RESPONSE_FORMAT_JSON_SCHEMA:
 		if format.JSONSchema != nil {
 			strict := format.JSONSchema.Strict != nil && *format.JSONSchema.Strict
 			return openai.ChatCompletionNewParamsResponseFormatUnion{
@@ -628,7 +625,7 @@ func convertResponseFormat(format *providers.ResponseFormat) openai.ChatCompleti
 func convertResponseMessage(msg openai.ChatCompletionMessage) providers.Message {
 	result := providers.Message{
 		Role:    string(msg.Role),
-		Content: msg.Content,
+		Content: providers.ContentFromString(msg.Content),
 	}
 
 	if len(msg.ToolCalls) > 0 {
@@ -689,10 +686,10 @@ func convertUserMessage(msg providers.Message) openai.ChatCompletionMessageParam
 	if msg.IsMultiModal() {
 		parts := make([]openai.ChatCompletionContentPartUnionParam, 0, len(msg.ContentParts()))
 		for _, part := range msg.ContentParts() {
-			switch part.Type {
-			case contentTypeText:
+			switch part := part.(type) {
+			case *providers.ContentPartText:
 				parts = append(parts, openai.TextContentPart(part.Text))
-			case contentTypeImageURL:
+			case *providers.ContentPartImage:
 				if part.ImageURL != nil {
 					parts = append(parts, openai.ImageContentPart(openai.ChatCompletionContentPartImageImageURLParam{
 						URL: part.ImageURL.URL,

@@ -9,27 +9,27 @@ import (
 
 // Finish reasons.
 const (
-	FinishReasonContentFilter = "content_filter"
-	FinishReasonLength        = "length"
-	FinishReasonStop          = "stop"
-	FinishReasonToolCalls     = "tool_calls"
+	FINISH_REASON_CONTENT_FILTER = "content_filter"
+	FINISH_REASON_LENGTH         = "length"
+	FINISH_REASON_STOP           = "stop"
+	FINISH_REASON_TOOL_CALLS     = "tool_calls"
 )
 
 // Reasoning effort levels for extended thinking.
 const (
-	ReasoningEffortAuto   ReasoningEffort = "auto"
-	ReasoningEffortHigh   ReasoningEffort = "high"
-	ReasoningEffortLow    ReasoningEffort = "low"
-	ReasoningEffortMedium ReasoningEffort = "medium"
-	ReasoningEffortNone   ReasoningEffort = "none"
+	REASONING_EFFORT_AUTO   ReasoningEffort = "auto"
+	REASONING_EFFORT_HIGH   ReasoningEffort = "high"
+	REASONING_EFFORT_LOW    ReasoningEffort = "low"
+	REASONING_EFFORT_MEDIUM ReasoningEffort = "medium"
+	REASONING_EFFORT_NONE   ReasoningEffort = "none"
 )
 
 // Message roles.
 const (
-	RoleAssistant = "assistant"
-	RoleSystem    = "system"
-	RoleTool      = "tool"
-	RoleUser      = "user"
+	ROLE_ASSISTANT = "assistant"
+	ROLE_SYSTEM    = "system"
+	ROLE_TOOL      = "tool"
+	ROLE_USER      = "user"
 )
 
 // CapabilityProvider is an optional interface for providers to report capabilities.
@@ -172,13 +172,6 @@ type CompletionParams struct {
 	Extra             map[string]any  `json:"-"`
 }
 
-// ContentPart represents a part of a multi-modal message.
-type ContentPart struct {
-	Type     string    `json:"type"`
-	Text     string    `json:"text,omitempty"`
-	ImageURL *ImageURL `json:"image_url,omitempty"`
-}
-
 // EmbeddingData represents a single embedding.
 type EmbeddingData struct {
 	Object    string    `json:"object"`
@@ -290,6 +283,19 @@ type ImageURL struct {
 	Detail string `json:"detail,omitempty"`
 }
 
+// InputAudio represents an audio input in a message.
+type InputAudio struct {
+	Data   string `json:"data"`
+	Format string `json:"format"`
+}
+
+// File represents an file input in a message.
+type File struct {
+	FileId   string `json:"file_id,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+	FileData string `json:"file_data,omitempty"`
+}
+
 // JSONSchema for structured output.
 type JSONSchema struct {
 	Name        string         `json:"name"`
@@ -301,7 +307,7 @@ type JSONSchema struct {
 // Message represents a chat message in OpenAI format.
 type Message struct {
 	Role       string     `json:"role"`
-	Content    any        `json:"content"`
+	Content    Content    `json:"content"`
 	Name       string     `json:"name,omitempty"`
 	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
 	ToolCallID string     `json:"tool_call_id,omitempty"`
@@ -376,38 +382,26 @@ type Usage struct {
 
 // ContentParts extracts content parts from a message.
 func (m *Message) ContentParts() []ContentPart {
-	if m.Content == nil {
+	if m == nil || m.Content == nil {
 		return nil
 	}
-
-	if parts, ok := m.Content.([]ContentPart); ok {
-		return parts
+	parts, ok := m.Content.(*ContentParts)
+	if !ok || parts == nil {
+		return nil
 	}
-
-	if parts, ok := m.Content.([]any); ok {
-		result := make([]ContentPart, 0, len(parts))
-		for _, p := range parts {
-			if partMap, ok := p.(map[string]any); ok {
-				var part ContentPart
-				if b, err := json.Marshal(partMap); err == nil {
-					if err := json.Unmarshal(b, &part); err == nil {
-						result = append(result, part)
-					}
-				}
-			}
-		}
-		return result
-	}
-
-	return nil
+	return []ContentPart(*parts)
 }
 
 // ContentString extracts string content from a message.
 func (m *Message) ContentString() string {
-	if s, ok := m.Content.(string); ok {
-		return s
+	if m == nil || m.Content == nil {
+		return ""
 	}
-	return ""
+	text, ok := m.Content.(*ContentStr)
+	if !ok || text == nil {
+		return ""
+	}
+	return string(*text)
 }
 
 // IsMultiModal returns true if the message contains multi-modal content.
@@ -437,14 +431,14 @@ type Batch struct {
 type BatchStatus string
 
 const (
-	BatchStatusCancelled  BatchStatus = "cancelled"
-	BatchStatusCancelling BatchStatus = "cancelling"
-	BatchStatusCompleted  BatchStatus = "completed"
-	BatchStatusExpired    BatchStatus = "expired"
-	BatchStatusFailed     BatchStatus = "failed"
-	BatchStatusFinalizing BatchStatus = "finalizing"
-	BatchStatusInProgress BatchStatus = "in_progress"
-	BatchStatusValidating BatchStatus = "validating"
+	BATCH_STATUS_CANCELLED   BatchStatus = "cancelled"
+	BATCH_STATUS_CANCELLING  BatchStatus = "cancelling"
+	BATCH_STATUS_COMPLETED   BatchStatus = "completed"
+	BATCH_STATUS_EXPIRED     BatchStatus = "expired"
+	BATCH_STATUS_FAILED      BatchStatus = "failed"
+	BATCH_STATUS_FINALIZING  BatchStatus = "finalizing"
+	BATCH_STATUS_IN_PROGRESS BatchStatus = "in_progress"
+	BATCH_STATUS_VALIDATING  BatchStatus = "validating"
 )
 
 // BatchRequestCounts tracks request counts for a batch job.

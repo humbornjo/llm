@@ -18,7 +18,7 @@ import (
 	"github.com/humbornjo/llm/providers"
 )
 
-func TestNew(t *testing.T) {
+func TestOpenAI_New(t *testing.T) {
 	t.Run("creates provider with API key", func(t *testing.T) {
 		provider, err := New(config.WithAPIKey("test-api-key"))
 		require.NoError(t, err)
@@ -48,7 +48,7 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestCapabilities(t *testing.T) {
+func TestOpenAI_Capabilities(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("test-key"))
@@ -65,7 +65,7 @@ func TestCapabilities(t *testing.T) {
 	require.True(t, caps.ListModels)
 }
 
-func TestConvertParams(t *testing.T) {
+func TestOpenAI_ConvertParams(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts basic params", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestConvertParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model: "gpt-4",
 			Messages: []providers.Message{
-				{Role: providers.RoleUser, Content: "Hello"},
+				{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")},
 			},
 		}
 
@@ -214,7 +214,7 @@ func TestConvertParams(t *testing.T) {
 		params := providers.CompletionParams{
 			Model:           "o1-mini",
 			Messages:        testutil.SimpleMessages(),
-			ReasoningEffort: providers.ReasoningEffortHigh,
+			ReasoningEffort: providers.REASONING_EFFORT_HIGH,
 		}
 
 		req := convertParams(params)
@@ -252,13 +252,13 @@ func TestConvertParams(t *testing.T) {
 	})
 }
 
-func TestConvertMessage(t *testing.T) {
+func TestOpenAI_ConvertMessage(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts system message", func(t *testing.T) {
 		t.Parallel()
 
-		msg := providers.Message{Role: providers.RoleSystem, Content: "You are helpful"}
+		msg := providers.Message{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("You are helpful")}
 		result, err := convertMessage(msg)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -267,7 +267,7 @@ func TestConvertMessage(t *testing.T) {
 	t.Run("converts user message", func(t *testing.T) {
 		t.Parallel()
 
-		msg := providers.Message{Role: providers.RoleUser, Content: "Hello"}
+		msg := providers.Message{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}
 		result, err := convertMessage(msg)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -276,7 +276,7 @@ func TestConvertMessage(t *testing.T) {
 	t.Run("converts assistant message", func(t *testing.T) {
 		t.Parallel()
 
-		msg := providers.Message{Role: providers.RoleAssistant, Content: "Hi there!"}
+		msg := providers.Message{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hi there!")}
 		result, err := convertMessage(msg)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -286,8 +286,8 @@ func TestConvertMessage(t *testing.T) {
 		t.Parallel()
 
 		msg := providers.Message{
-			Role:    providers.RoleAssistant,
-			Content: "",
+			Role:    providers.ROLE_ASSISTANT,
+			Content: providers.ContentFromString(""),
 			ToolCalls: []providers.ToolCall{
 				{
 					ID:   "call_123",
@@ -308,8 +308,8 @@ func TestConvertMessage(t *testing.T) {
 		t.Parallel()
 
 		msg := providers.Message{
-			Role:       providers.RoleTool,
-			Content:    "sunny, 22°C",
+			Role:       providers.ROLE_TOOL,
+			Content:    providers.ContentFromString("sunny, 22°C"),
 			ToolCallID: "call_123",
 		}
 		result, err := convertMessage(msg)
@@ -321,11 +321,11 @@ func TestConvertMessage(t *testing.T) {
 		t.Parallel()
 
 		msg := providers.Message{
-			Role: providers.RoleUser,
-			Content: []providers.ContentPart{
-				{Type: "text", Text: "What's in this image?"},
-				{Type: "image_url", ImageURL: &providers.ImageURL{URL: "https://example.com/image.png"}},
-			},
+			Role: providers.ROLE_USER,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartText{Text: "What's in this image?"},
+				&providers.ContentPartImage{ImageURL: &providers.ImageURL{URL: "https://example.com/image.png"}},
+			),
 		}
 		result, err := convertMessage(msg)
 		require.NoError(t, err)
@@ -335,14 +335,14 @@ func TestConvertMessage(t *testing.T) {
 	t.Run("returns error for unknown role", func(t *testing.T) {
 		t.Parallel()
 
-		msg := providers.Message{Role: "unknown_role", Content: "Hello"}
+		msg := providers.Message{Role: "unknown_role", Content: providers.ContentFromString("Hello")}
 		_, err := convertMessage(msg)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "unknown message role")
 	})
 }
 
-func TestConvertResponse(t *testing.T) {
+func TestOpenAI_ConvertResponse(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts basic response", func(t *testing.T) {
@@ -352,7 +352,7 @@ func TestConvertResponse(t *testing.T) {
 	})
 }
 
-func TestConvertTools(t *testing.T) {
+func TestOpenAI_ConvertTools(t *testing.T) {
 	t.Parallel()
 
 	t.Run("converts tool with properties and required fields", func(t *testing.T) {
@@ -441,7 +441,7 @@ func TestConvertTools(t *testing.T) {
 	})
 }
 
-func TestCompletionSendsMaxCompletionTokensOnWire(t *testing.T) {
+func TestOpenAI_CompletionSendsMaxCompletionTokensOnWire(t *testing.T) {
 	t.Parallel()
 
 	serverURL, capturedBody := testutil.FakeCompletionServer(t)
@@ -470,7 +470,7 @@ func TestCompletionSendsMaxCompletionTokensOnWire(t *testing.T) {
 	require.Equal(t, float64(1024), body["max_completion_tokens"])
 }
 
-func TestCompletionStreamSendsMaxCompletionTokensOnWire(t *testing.T) {
+func TestOpenAI_CompletionStreamSendsMaxCompletionTokensOnWire(t *testing.T) {
 	t.Parallel()
 
 	serverURL, capturedBody := testutil.FakeStreamingServer(t)
@@ -503,7 +503,7 @@ func TestCompletionStreamSendsMaxCompletionTokensOnWire(t *testing.T) {
 
 // Integration tests - only run if API key is available.
 
-func TestIntegrationCompletion(t *testing.T) {
+func TestOpenAI_IntegrationCompletion(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -526,12 +526,12 @@ func TestIntegrationCompletion(t *testing.T) {
 	require.Equal(t, "chat.completion", resp.Object)
 	require.Len(t, resp.Choices, 1)
 	require.NotEmpty(t, resp.Choices[0].Message.Content)
-	require.Equal(t, providers.RoleAssistant, resp.Choices[0].Message.Role)
+	require.Equal(t, providers.ROLE_ASSISTANT, resp.Choices[0].Message.Role)
 	require.NotNil(t, resp.Usage)
 	require.Greater(t, resp.Usage.TotalTokens, 0)
 }
 
-func TestIntegrationCompletionStream(t *testing.T) {
+func TestOpenAI_IntegrationCompletionStream(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -566,7 +566,7 @@ func TestIntegrationCompletionStream(t *testing.T) {
 	require.NotEmpty(t, content.String())
 }
 
-func TestIntegrationCompletionWithTools(t *testing.T) {
+func TestOpenAI_IntegrationCompletionWithTools(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -595,11 +595,11 @@ func TestIntegrationCompletionWithTools(t *testing.T) {
 		tc := resp.Choices[0].Message.ToolCalls[0]
 		require.Equal(t, "get_weather", tc.Function.Name)
 		require.Contains(t, tc.Function.Arguments, "Paris")
-		require.Equal(t, providers.FinishReasonToolCalls, resp.Choices[0].FinishReason)
+		require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, resp.Choices[0].FinishReason)
 	}
 }
 
-func TestIntegrationAgentLoop(t *testing.T) {
+func TestOpenAI_IntegrationAgentLoop(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -614,7 +614,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
-		{Role: providers.RoleUser, Content: "What is the weather in Paris? Use the get_weather tool."},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool.")},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -628,7 +628,7 @@ func TestIntegrationAgentLoop(t *testing.T) {
 
 	// Step 2: Verify the model called the tool.
 	require.NotEmpty(t, resp.Choices[0].Message.ToolCalls, "expected model to call get_weather tool")
-	require.Equal(t, providers.FinishReasonToolCalls, resp.Choices[0].FinishReason)
+	require.Equal(t, providers.FINISH_REASON_TOOL_CALLS, resp.Choices[0].FinishReason)
 
 	tc := resp.Choices[0].Message.ToolCalls[0]
 	require.Equal(t, "get_weather", tc.Function.Name)
@@ -646,8 +646,8 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	// Step 4: Add assistant message with tool call and tool result.
 	messages = append(messages, resp.Choices[0].Message)
 	messages = append(messages, providers.Message{
-		Role:       providers.RoleTool,
-		Content:    testutil.MockWeatherResult(t, args.Location),
+		Role:       providers.ROLE_TOOL,
+		Content:    providers.ContentFromString(testutil.MockWeatherResult(t, args.Location)),
 		ToolCallID: tc.ID,
 	})
 
@@ -661,13 +661,12 @@ func TestIntegrationAgentLoop(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// Step 6: Verify the model produced a final response.
-	require.Equal(t, providers.FinishReasonStop, resp.Choices[0].FinishReason)
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content in final response")
+	require.Equal(t, providers.FINISH_REASON_STOP, resp.Choices[0].FinishReason)
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.NotEmpty(t, contentStr)
 }
 
-func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
+func TestOpenAI_IntegrationAgentLoopMultipleParams(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -682,7 +681,7 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
-		{Role: providers.RoleUser, Content: "Use the calculate tool to add 15 and 27 together."},
+		{Role: providers.ROLE_USER, Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together.")},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -717,8 +716,8 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	// Complete the agent loop with tool result.
 	messages = append(messages, resp.Choices[0].Message)
 	messages = append(messages, providers.Message{
-		Role:       providers.RoleTool,
-		Content:    testutil.MockCalculatorResult(t, args.A, args.B, args.Operation),
+		Role:       providers.ROLE_TOOL,
+		Content:    providers.ContentFromString(testutil.MockCalculatorResult(t, args.A, args.B, args.Operation)),
 		ToolCallID: tc.ID,
 	})
 
@@ -730,12 +729,11 @@ func TestIntegrationAgentLoopMultipleParams(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify final response mentions the result.
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok)
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, contentStr, "42")
 }
 
-func TestIntegrationCompletionConversation(t *testing.T) {
+func TestOpenAI_IntegrationCompletionConversation(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -758,12 +756,11 @@ func TestIntegrationCompletionConversation(t *testing.T) {
 	require.Len(t, resp.Choices, 1)
 
 	// The model should remember the name "Alice".
-	contentStr, ok := resp.Choices[0].Message.Content.(string)
-	require.True(t, ok, "expected string content")
+	contentStr := resp.Choices[0].Message.ContentString()
 	require.Contains(t, strings.ToLower(contentStr), "alice")
 }
 
-func TestIntegrationEmbedding(t *testing.T) {
+func TestOpenAI_IntegrationEmbedding(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -788,7 +785,7 @@ func TestIntegrationEmbedding(t *testing.T) {
 	require.NotNil(t, resp.Usage)
 }
 
-func TestIntegrationListModels(t *testing.T) {
+func TestOpenAI_IntegrationListModels(t *testing.T) {
 	t.Parallel()
 
 	if testutil.SkipIfNoAPIKey("openai") {
@@ -822,7 +819,7 @@ func TestIntegrationListModels(t *testing.T) {
 	require.True(t, found, "Expected to find GPT models in the list")
 }
 
-func TestIntegrationAuthenticationError(t *testing.T) {
+func TestOpenAI_IntegrationAuthenticationError(t *testing.T) {
 	t.Parallel()
 
 	provider, err := New(config.WithAPIKey("invalid-api-key"))
@@ -842,7 +839,7 @@ func TestIntegrationAuthenticationError(t *testing.T) {
 	require.ErrorAs(t, err, &authErr)
 }
 
-func TestConvertError(t *testing.T) {
+func TestOpenAI_ConvertError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -877,17 +874,17 @@ func TestConvertError(t *testing.T) {
 		},
 		{
 			name:         "400 with context_length_exceeded becomes ContextLengthError",
-			err:          newTestAPIError(t, 400, apiCodeContextLengthExceeded),
+			err:          newTestAPIError(t, 400, _API_CODE_CONTEXT_LENGTH_EXCEEDED),
 			wantSentinel: errors.ErrContextLength,
 		},
 		{
 			name:         "400 with content_filter becomes ContentFilterError",
-			err:          newTestAPIError(t, 400, apiCodeContentFilter),
+			err:          newTestAPIError(t, 400, _API_CODE_CONTENT_FILTER),
 			wantSentinel: errors.ErrContentFilter,
 		},
 		{
 			name:         "400 with content_policy_violation becomes ContentFilterError",
-			err:          newTestAPIError(t, 400, apiCodeContentPolicyViolated),
+			err:          newTestAPIError(t, 400, _API_CODE_CONTENT_POLICY_VIOLATED),
 			wantSentinel: errors.ErrContentFilter,
 		},
 		{
@@ -897,17 +894,17 @@ func TestConvertError(t *testing.T) {
 		},
 		{
 			name:         "model_not_found code becomes ModelNotFoundError",
-			err:          newTestAPIError(t, 500, apiCodeModelNotFound),
+			err:          newTestAPIError(t, 500, _API_CODE_MODEL_NOT_FOUND),
 			wantSentinel: errors.ErrModelNotFound,
 		},
 		{
 			name:         "invalid_api_key code becomes AuthenticationError",
-			err:          newTestAPIError(t, 500, apiCodeInvalidAPIKey),
+			err:          newTestAPIError(t, 500, _API_CODE_INVALID_API_KEY),
 			wantSentinel: errors.ErrAuthentication,
 		},
 		{
 			name:         "rate_limit_exceeded code becomes RateLimitError",
-			err:          newTestAPIError(t, 500, apiCodeRateLimitExceeded),
+			err:          newTestAPIError(t, 500, _API_CODE_RATE_LIMIT_EXCEEDED),
 			wantSentinel: errors.ErrRateLimit,
 		},
 		{
@@ -921,7 +918,7 @@ func TestConvertError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := &CompatibleProvider{compatibleConfig: CompatibleConfig{Name: providerName}}
+			p := &CompatibleProvider{compatibleConfig: CompatibleConfig{Name: _PROVIDER_NAME}}
 			result := p.ConvertError(tc.err)
 
 			if tc.wantSentinel == nil {
@@ -933,7 +930,7 @@ func TestConvertError(t *testing.T) {
 			require.True(t, stderrors.Is(result, tc.wantSentinel), "expected error to match %v", tc.wantSentinel)
 
 			// Verify the provider name is set in the error message.
-			require.Contains(t, result.Error(), "["+providerName+"]")
+			require.Contains(t, result.Error(), "["+_PROVIDER_NAME+"]")
 		})
 	}
 }

@@ -1,6 +1,6 @@
 // Example: Basic completion request
 //
-// This example demonstrates the simplest way to use any-llm-go.
+// This example demonstrates the simplest way to use llm.
 //
 // Run with:
 //
@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"log"
 
-	anyllm "github.com/humbornjo/llm"
+	"github.com/humbornjo/llm"
 	"github.com/humbornjo/llm/providers/openai"
 )
 
@@ -27,10 +27,10 @@ func main() {
 	}
 
 	// Make a completion request.
-	response, err := provider.Completion(ctx, anyllm.CompletionParams{
+	response, err := provider.Completion(ctx, llm.CompletionParams{
 		Model: "gpt-4o-mini",
-		Messages: []anyllm.Message{
-			{Role: anyllm.RoleUser, Content: "What is the capital of France? Reply in one word."},
+		Messages: []llm.Message{
+			{Role: llm.ROLE_USER, Content: llm.ContentFromString("What is the capital of France? Reply in one word.")},
 		},
 	})
 	if err != nil {

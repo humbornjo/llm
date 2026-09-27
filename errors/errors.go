@@ -7,18 +7,18 @@ import (
 
 // Error codes used in BaseError.Code field.
 const (
-	CodeRateLimit           = "rate_limit"
-	CodeAuthError           = "auth_error"
-	CodeInvalidRequest      = "invalid_request"
-	CodeContextLength       = "context_length_exceeded"
-	CodeContentFilter       = "content_filter"
-	CodeModelNotFound       = "model_not_found"
-	CodeProviderError       = "provider_error"
-	CodeMissingAPIKey       = "missing_api_key"
-	CodeUnsupportedProvider = "unsupported_provider"
-	CodeUnsupportedParam    = "unsupported_parameter"
-	CodeInsufficientFunds   = "insufficient_funds"
-	CodeUnsupported         = "unsupported"
+	CODE_RATE_LIMIT           = "rate_limit"
+	CODE_AUTH_ERROR           = "auth_error"
+	CODE_INVALID_REQUEST      = "invalid_request"
+	CODE_CONTEXT_LENGTH       = "context_length_exceeded"
+	CODE_CONTENT_FILTER       = "content_filter"
+	CODE_MODEL_NOT_FOUND      = "model_not_found"
+	CODE_PROVIDER_ERROR       = "provider_error"
+	CODE_MISSING_API_KEY      = "missing_api_key"
+	CODE_UNSUPPORTED_PROVIDER = "unsupported_provider"
+	CODE_UNSUPPORTED_PARAM    = "unsupported_parameter"
+	CODE_INSUFFICIENT_FUNDS   = "insufficient_funds"
+	CODE_UNSUPPORTED          = "unsupported"
 )
 
 // Sentinel errors for type checking with errors.Is().
@@ -37,7 +37,7 @@ var (
 	ErrUnsupported         = stderrors.New("operation not supported by provider")
 )
 
-// BaseError is the base error type for all any-llm errors.
+// BaseError is the base error type for all llm errors.
 // It wraps the original error and includes provider context.
 type BaseError struct {
 	// Code is a short error code (e.g., "rate_limit", "auth_error").
@@ -178,7 +178,7 @@ type UnsupportedOperationError struct {
 func NewRateLimitError(provider string, err error) *RateLimitError {
 	return &RateLimitError{
 		BaseError: BaseError{
-			Code:     CodeRateLimit,
+			Code:     CODE_RATE_LIMIT,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrRateLimit,
@@ -190,7 +190,7 @@ func NewRateLimitError(provider string, err error) *RateLimitError {
 func NewAuthenticationError(provider string, err error) *AuthenticationError {
 	return &AuthenticationError{
 		BaseError: BaseError{
-			Code:     CodeAuthError,
+			Code:     CODE_AUTH_ERROR,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrAuthentication,
@@ -202,7 +202,7 @@ func NewAuthenticationError(provider string, err error) *AuthenticationError {
 func NewInvalidRequestError(provider string, err error) *InvalidRequestError {
 	return &InvalidRequestError{
 		BaseError: BaseError{
-			Code:     CodeInvalidRequest,
+			Code:     CODE_INVALID_REQUEST,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrInvalidRequest,
@@ -214,7 +214,7 @@ func NewInvalidRequestError(provider string, err error) *InvalidRequestError {
 func NewContextLengthError(provider string, err error) *ContextLengthError {
 	return &ContextLengthError{
 		BaseError: BaseError{
-			Code:     CodeContextLength,
+			Code:     CODE_CONTEXT_LENGTH,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrContextLength,
@@ -226,7 +226,7 @@ func NewContextLengthError(provider string, err error) *ContextLengthError {
 func NewContentFilterError(provider string, err error) *ContentFilterError {
 	return &ContentFilterError{
 		BaseError: BaseError{
-			Code:     CodeContentFilter,
+			Code:     CODE_CONTENT_FILTER,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrContentFilter,
@@ -238,7 +238,7 @@ func NewContentFilterError(provider string, err error) *ContentFilterError {
 func NewModelNotFoundError(provider string, err error) *ModelNotFoundError {
 	return &ModelNotFoundError{
 		BaseError: BaseError{
-			Code:     CodeModelNotFound,
+			Code:     CODE_MODEL_NOT_FOUND,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrModelNotFound,
@@ -250,7 +250,7 @@ func NewModelNotFoundError(provider string, err error) *ModelNotFoundError {
 func NewProviderError(provider string, err error) *ProviderError {
 	return &ProviderError{
 		BaseError: BaseError{
-			Code:     CodeProviderError,
+			Code:     CODE_PROVIDER_ERROR,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrProvider,
@@ -262,7 +262,7 @@ func NewProviderError(provider string, err error) *ProviderError {
 func NewMissingAPIKeyError(provider string, envVar string) *MissingAPIKeyError {
 	return &MissingAPIKeyError{
 		BaseError: BaseError{
-			Code:     CodeMissingAPIKey,
+			Code:     CODE_MISSING_API_KEY,
 			Provider: provider,
 			Err: fmt.Errorf(
 				"API key not provided. Set %s environment variable or pass WithAPIKey option",
@@ -278,7 +278,7 @@ func NewMissingAPIKeyError(provider string, envVar string) *MissingAPIKeyError {
 func NewUnsupportedProviderError(provider string) *UnsupportedProviderError {
 	return &UnsupportedProviderError{
 		BaseError: BaseError{
-			Code:     CodeUnsupportedProvider,
+			Code:     CODE_UNSUPPORTED_PROVIDER,
 			Provider: provider,
 			Err:      fmt.Errorf("provider %q is not supported", provider),
 			sentinel: ErrUnsupportedProvider,
@@ -290,7 +290,7 @@ func NewUnsupportedProviderError(provider string) *UnsupportedProviderError {
 func NewUnsupportedParamError(provider string, param string) *UnsupportedParamError {
 	return &UnsupportedParamError{
 		BaseError: BaseError{
-			Code:     CodeUnsupportedParam,
+			Code:     CODE_UNSUPPORTED_PARAM,
 			Provider: provider,
 			Err:      fmt.Errorf("parameter %q is not supported by provider %s", param, provider),
 			sentinel: ErrUnsupportedParam,
@@ -303,7 +303,7 @@ func NewUnsupportedParamError(provider string, param string) *UnsupportedParamEr
 func NewInsufficientFundsError(provider string, err error) *InsufficientFundsError {
 	return &InsufficientFundsError{
 		BaseError: BaseError{
-			Code:     CodeInsufficientFunds,
+			Code:     CODE_INSUFFICIENT_FUNDS,
 			Provider: provider,
 			Err:      err,
 			sentinel: ErrInsufficientFunds,
@@ -315,7 +315,7 @@ func NewInsufficientFundsError(provider string, err error) *InsufficientFundsErr
 // and operation (e.g. "moderation").
 func NewUnsupportedOperationError(provider, operation string, err error) *UnsupportedOperationError {
 	return &UnsupportedOperationError{
-		BaseError: New(CodeUnsupported, provider, err, ErrUnsupported),
+		BaseError: New(CODE_UNSUPPORTED, provider, err, ErrUnsupported),
 		Operation: operation,
 	}
 }

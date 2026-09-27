@@ -1,4 +1,4 @@
-// Package deepseek provides a DeepSeek provider implementation for any-llm.
+// Package deepseek provides a DeepSeek provider implementation for llm.
 // DeepSeek exposes an OpenAI-compatible API with some differences in JSON mode handling.
 package deepseek
 
@@ -19,22 +19,22 @@ import (
 
 // Provider configuration constants.
 const (
-	defaultBaseURL = "https://api.deepseek.com"
-	envAPIKey      = "DEEPSEEK_API_KEY"
-	providerName   = "deepseek"
+	_DEFAULT_BASE_URL = "https://api.deepseek.com"
+	_ENV_API_KEY      = "DEEPSEEK_API_KEY"
+	_PROVIDER_NAME    = "deepseek"
 )
 
 // Object type constants for API responses.
 const (
-	objectChatCompletion      = "chat.completion"
-	objectChatCompletionChunk = "chat.completion.chunk"
-	objectList                = "list"
+	_OBJECT_CHAT_COMPLETION       = "chat.completion"
+	_OBJECT_CHAT_COMPLETION_CHUNK = "chat.completion.chunk"
+	_OBJECT_LIST                  = "list"
 )
 
 // Response format types.
 const (
-	responseFormatJSONObject = "json_object"
-	responseFormatJSONSchema = "json_schema"
+	_RESPONSE_FORMAT_JSON_OBJECT = "json_object"
+	_RESPONSE_FORMAT_JSON_SCHEMA = "json_schema"
 )
 
 // Ensure Provider implements the required interfaces.
@@ -54,13 +54,13 @@ type Provider struct {
 // New creates a new DeepSeek provider.
 func New(opts ...config.Option) (*Provider, error) {
 	base, err := openai.NewCompatible(openai.CompatibleConfig{
-		APIKeyEnvVar:                   envAPIKey,
+		APIKeyEnvVar:                   _ENV_API_KEY,
 		BaseURLEnvVar:                  "",
 		Capabilities:                   capabilities(),
 		ChatCompletionRequestTransform: transformRequest,
 		DefaultAPIKey:                  "",
-		DefaultBaseURL:                 defaultBaseURL,
-		Name:                           providerName,
+		DefaultBaseURL:                 _DEFAULT_BASE_URL,
+		Name:                           _PROVIDER_NAME,
 		RequireAPIKey:                  true,
 	}, opts...)
 	if err != nil {
@@ -117,7 +117,7 @@ func preprocessParams(params providers.CompletionParams) providers.CompletionPar
 		return params
 	}
 
-	if params.ResponseFormat.Type != responseFormatJSONSchema {
+	if params.ResponseFormat.Type != _RESPONSE_FORMAT_JSON_SCHEMA {
 		return params
 	}
 
@@ -152,7 +152,7 @@ func preprocessParams(params providers.CompletionParams) providers.CompletionPar
 		ToolChoice:        params.ToolChoice,
 		ParallelToolCalls: params.ParallelToolCalls,
 		ResponseFormat: &providers.ResponseFormat{
-			Type: responseFormatJSONObject,
+			Type: _RESPONSE_FORMAT_JSON_OBJECT,
 		},
 		ReasoningEffort: params.ReasoningEffort,
 		Seed:            params.Seed,
@@ -186,7 +186,7 @@ func preprocessMessagesForJSONSchema(messages []providers.Message, schema map[st
 	// Find the last user message.
 	lastUserIdx := -1
 	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Role == providers.RoleUser {
+		if messages[i].Role == providers.ROLE_USER {
 			lastUserIdx = i
 			break
 		}
@@ -225,7 +225,7 @@ Return the JSON object only, no other text, do not wrap it in `+"```json"+` or `
 
 	// Update the message, preserving all fields from the original.
 	result[lastUserIdx] = providers.Message{
-		Content:    modifiedContent,
+		Content:    providers.ContentFromString(modifiedContent),
 		Name:       targetMsg.Name,
 		Reasoning:  targetMsg.Reasoning,
 		Role:       targetMsg.Role,

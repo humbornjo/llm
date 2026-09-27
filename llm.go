@@ -1,21 +1,21 @@
-// Package anyllm provides a unified interface for interacting with LLM providers.
+// Package llm provides a unified interface for interacting with LLM providers.
 //
 // This package re-exports common types and configuration options from subpackages,
 // allowing most use cases to work with just two imports:
 //
 //	import (
-//	    anyllm "github.com/humbornjo/llm"
+//	    "github.com/humbornjo/llm"
 //	    "github.com/humbornjo/llm/providers/openai"
 //	)
 //
-//	provider, err := openai.New(anyllm.WithAPIKey("sk-..."))
-//	response, err := provider.Completion(ctx, anyllm.CompletionParams{
+//	provider, err := openai.New(llm.WithAPIKey("sk-..."))
+//	response, err := provider.Completion(ctx, llm.CompletionParams{
 //	    Model: "gpt-4o-mini",
-//	    Messages: []anyllm.Message{
-//	        {Role: anyllm.RoleUser, Content: "Hello!"},
+//	    Messages: []llm.Message{
+//	        {Role: llm.ROLE_USER, Content: "Hello!"},
 //	    },
 //	})
-package anyllm
+package llm
 
 import (
 	"github.com/humbornjo/llm/config"
@@ -25,39 +25,39 @@ import (
 
 // Message roles.
 const (
-	RoleAssistant = providers.RoleAssistant
-	RoleSystem    = providers.RoleSystem
-	RoleTool      = providers.RoleTool
-	RoleUser      = providers.RoleUser
+	ROLE_ASSISTANT = providers.ROLE_ASSISTANT
+	ROLE_SYSTEM    = providers.ROLE_SYSTEM
+	ROLE_TOOL      = providers.ROLE_TOOL
+	ROLE_USER      = providers.ROLE_USER
 )
 
 // Finish reasons.
 const (
-	FinishReasonContentFilter = providers.FinishReasonContentFilter
-	FinishReasonLength        = providers.FinishReasonLength
-	FinishReasonStop          = providers.FinishReasonStop
-	FinishReasonToolCalls     = providers.FinishReasonToolCalls
+	FINISH_REASON_CONTENT_FILTER = providers.FINISH_REASON_CONTENT_FILTER
+	FINISH_REASON_LENGTH         = providers.FINISH_REASON_LENGTH
+	FINISH_REASON_STOP           = providers.FINISH_REASON_STOP
+	FINISH_REASON_TOOL_CALLS     = providers.FINISH_REASON_TOOL_CALLS
 )
 
 // Batch status constants.
 const (
-	BatchStatusCancelled  = providers.BatchStatusCancelled
-	BatchStatusCancelling = providers.BatchStatusCancelling
-	BatchStatusCompleted  = providers.BatchStatusCompleted
-	BatchStatusExpired    = providers.BatchStatusExpired
-	BatchStatusFailed     = providers.BatchStatusFailed
-	BatchStatusFinalizing = providers.BatchStatusFinalizing
-	BatchStatusInProgress = providers.BatchStatusInProgress
-	BatchStatusValidating = providers.BatchStatusValidating
+	BATCH_STATUS_CANCELLED   = providers.BATCH_STATUS_CANCELLED
+	BATCH_STATUS_CANCELLING  = providers.BATCH_STATUS_CANCELLING
+	BATCH_STATUS_COMPLETED   = providers.BATCH_STATUS_COMPLETED
+	BATCH_STATUS_EXPIRED     = providers.BATCH_STATUS_EXPIRED
+	BATCH_STATUS_FAILED      = providers.BATCH_STATUS_FAILED
+	BATCH_STATUS_FINALIZING  = providers.BATCH_STATUS_FINALIZING
+	BATCH_STATUS_IN_PROGRESS = providers.BATCH_STATUS_IN_PROGRESS
+	BATCH_STATUS_VALIDATING  = providers.BATCH_STATUS_VALIDATING
 )
 
 // ReasoningEffort levels.
 const (
-	ReasoningEffortAuto   = providers.ReasoningEffortAuto
-	ReasoningEffortHigh   = providers.ReasoningEffortHigh
-	ReasoningEffortLow    = providers.ReasoningEffortLow
-	ReasoningEffortMedium = providers.ReasoningEffortMedium
-	ReasoningEffortNone   = providers.ReasoningEffortNone
+	REASONING_EFFORT_AUTO   = providers.REASONING_EFFORT_AUTO
+	REASONING_EFFORT_HIGH   = providers.REASONING_EFFORT_HIGH
+	REASONING_EFFORT_LOW    = providers.REASONING_EFFORT_LOW
+	REASONING_EFFORT_MEDIUM = providers.REASONING_EFFORT_MEDIUM
+	REASONING_EFFORT_NONE   = providers.REASONING_EFFORT_NONE
 )
 
 // Provider types.
@@ -102,10 +102,19 @@ type (
 
 // Message types.
 type (
-	ContentPart = providers.ContentPart
-	ImageURL    = providers.ImageURL
-	Message     = providers.Message
-	Reasoning   = providers.Reasoning
+	Content          = providers.Content
+	ContentParts     = providers.ContentParts
+	ContentPartAudio = providers.ContentPartAudio
+	ContentPartFile  = providers.ContentPartFile
+	ContentPartImage = providers.ContentPartImage
+	ContentPartText  = providers.ContentPartText
+	ContentPart      = providers.ContentPart
+	ContentPartType  = providers.ContentPartType
+	ImageURL         = providers.ImageURL
+	InputAudio       = providers.InputAudio
+	File             = providers.File
+	Message          = providers.Message
+	Reasoning        = providers.Reasoning
 )
 
 // Tool types.
@@ -152,12 +161,14 @@ type (
 
 // Configuration options.
 var (
-	NewConfig      = config.New
-	WithAPIKey     = config.WithAPIKey
-	WithBaseURL    = config.WithBaseURL
-	WithExtra      = config.WithExtra
-	WithHTTPClient = config.WithHTTPClient
-	WithTimeout    = config.WithTimeout
+	NewConfig         = config.New
+	WithAPIKey        = config.WithAPIKey
+	WithBaseURL       = config.WithBaseURL
+	WithExtra         = config.WithExtra
+	WithHTTPClient    = config.WithHTTPClient
+	WithTimeout       = config.WithTimeout
+	ContentFromParts  = providers.ContentFromParts
+	ContentFromString = providers.ContentFromString
 )
 
 // Sentinel errors for type checking with errors.Is().

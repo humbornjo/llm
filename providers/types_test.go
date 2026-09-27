@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRerankTypesJSON(t *testing.T) {
+func TestProviders_RerankTypesJSON(t *testing.T) {
 	t.Parallel()
 
 	topN := 3
@@ -29,7 +29,7 @@ func TestRerankTypesJSON(t *testing.T) {
 	require.Equal(t, *params.TopN, *decoded.TopN)
 }
 
-func TestRerankResponseJSON(t *testing.T) {
+func TestProviders_RerankResponseJSON(t *testing.T) {
 	t.Parallel()
 
 	totalTokens := 100
@@ -58,7 +58,7 @@ func TestRerankResponseJSON(t *testing.T) {
 	require.Equal(t, 100, *decoded.Usage.TotalTokens)
 }
 
-func TestToolCallExtraExcludedFromJSON(t *testing.T) {
+func TestProviders_ToolCallExtraExcludedFromJSON(t *testing.T) {
 	t.Parallel()
 
 	tc := ToolCall{
