@@ -332,6 +332,55 @@ func TestOpenAI_ConvertMessage(t *testing.T) {
 		require.NotNil(t, result)
 	})
 
+	t.Run("flattens parts-backed system message", func(t *testing.T) {
+		t.Parallel()
+
+		msg := providers.Message{
+			Role: providers.ROLE_SYSTEM,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartText{Text: "You are helpful. "},
+				&providers.ContentPartText{Text: "Answer tersely."},
+			),
+		}
+		result, err := convertMessage(msg)
+		require.NoError(t, err)
+		raw, err := json.Marshal(result)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `"content":"You are helpful. Answer tersely."`)
+	})
+
+	t.Run("flattens parts-backed tool message", func(t *testing.T) {
+		t.Parallel()
+
+		msg := providers.Message{
+			Role: providers.ROLE_TOOL,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartText{Text: "sunny, "},
+				&providers.ContentPartText{Text: "22°C"},
+			),
+			ToolCallID: "call_123",
+		}
+		result, err := convertMessage(msg)
+		require.NoError(t, err)
+		raw, err := json.Marshal(result)
+		require.NoError(t, err)
+		require.Contains(t, string(raw), `"content":"sunny, 22°C"`)
+	})
+
+	t.Run("rejects non-text parts in system message", func(t *testing.T) {
+		t.Parallel()
+
+		msg := providers.Message{
+			Role: providers.ROLE_SYSTEM,
+			Content: providers.ContentFromParts(
+				&providers.ContentPartImage{ImageURL: &providers.ImageURL{URL: "https://example.com/image.png"}},
+			),
+		}
+		_, err := convertMessage(msg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "only text parts")
+	})
+
 	t.Run("returns error for unknown role", func(t *testing.T) {
 		t.Parallel()
 

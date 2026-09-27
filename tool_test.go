@@ -51,7 +51,7 @@ func TestLLM_NewToolsHandler(t *testing.T) {
 			for _, opt := range opts {
 				opt(&config)
 			}
-			return args.Value + ":" + config.Metadata["suffix"].(string), nil
+			return args.Value + ":" + config.Metadata["suffix"].(string), nil // nolint: errcheck
 		},
 		nil,
 	)

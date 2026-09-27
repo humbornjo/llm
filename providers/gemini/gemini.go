@@ -929,7 +929,7 @@ func convertUserMessage(msg providers.Message) *genai.Content {
 
 	var parts []*genai.Part
 	for _, part := range msg.ContentParts() {
-		switch part := part.(type) {
+		switch part := part.Unwrap().(type) {
 		case *providers.ContentPartText:
 			parts = append(parts, genai.NewPartFromText(part.Text))
 		case *providers.ContentPartImage:

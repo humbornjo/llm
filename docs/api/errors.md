@@ -48,11 +48,16 @@ if err != nil {
 | `ErrModelNotFound` | Requested model doesn't exist |
 | `ErrProvider` | General provider-side error |
 | `ErrMissingAPIKey` | No API key provided |
+| `ErrInsufficientFunds` | Provider account balance too low |
 | `ErrUnsupportedParam` | Parameter not supported by provider |
+| `ErrUnsupported` | Operation not supported by provider |
+| `ErrUnsupportedProvider` | Provider not recognized |
 
 ## Structured Error Types
 
-For more details, use `errors.As()` to access structured error types:
+For more details, use `errors.As()` to access structured error types. Every
+structured type embeds `BaseError`, whose `Error()` string includes the
+provider and code, and whose `Err` field holds the original provider error.
 
 ### RateLimitError
 
@@ -60,7 +65,6 @@ For more details, use `errors.As()` to access structured error types:
 var rateLimitErr *llm.RateLimitError
 if errors.As(err, &rateLimitErr) {
     fmt.Printf("Provider: %s\n", rateLimitErr.Provider)
-    fmt.Printf("Message: %s\n", rateLimitErr.Message)
     fmt.Printf("Retry after: %d seconds\n", rateLimitErr.RetryAfter)
 }
 ```
@@ -71,7 +75,6 @@ if errors.As(err, &rateLimitErr) {
 var authErr *llm.AuthenticationError
 if errors.As(err, &authErr) {
     fmt.Printf("Provider: %s\n", authErr.Provider)
-    fmt.Printf("Message: %s\n", authErr.Message)
 }
 ```
 
@@ -81,7 +84,6 @@ if errors.As(err, &authErr) {
 var ctxErr *llm.ContextLengthError
 if errors.As(err, &ctxErr) {
     fmt.Printf("Provider: %s\n", ctxErr.Provider)
-    fmt.Printf("Message: %s\n", ctxErr.Message)
 }
 ```
 
@@ -92,7 +94,6 @@ var providerErr *llm.ProviderError
 if errors.As(err, &providerErr) {
     fmt.Printf("Provider: %s\n", providerErr.Provider)
     fmt.Printf("Status code: %d\n", providerErr.StatusCode)
-    fmt.Printf("Message: %s\n", providerErr.Message)
 }
 ```
 
@@ -113,7 +114,6 @@ All error types embed `BaseError`:
 ```go
 type BaseError struct {
     Code     string // Short error code (e.g., "rate_limit").
-    Message  string // Human-readable message.
     Provider string // Provider name (e.g., "openai").
     Err      error  // Underlying error.
 }
@@ -121,7 +121,7 @@ type BaseError struct {
 
 ## Accessing the Original Error
 
-All any-llm errors wrap the original provider error:
+All llm errors wrap the original provider error:
 
 ```go
 var baseErr *llm.BaseError
