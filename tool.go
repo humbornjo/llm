@@ -3,8 +3,12 @@ package anyllm
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"iter"
 )
+
+var ErrToolNotFound = errors.New("tool not found")
 
 // Tool describes and executes one function that an LLM may call.
 type Tool interface {
@@ -69,4 +73,21 @@ func NewTool[T any](
 	streamf func(ctx context.Context, args T, opts ...ToolOption) iter.Seq2[string, error],
 ) Tool {
 	return &tool[T]{ToolInfo: info, execf: execf, streamf: streamf}
+}
+
+func NewToolsHandler(tools ...Tool) func(context.Context, FunctionCall, ...ToolOption) (string, error) {
+	type handler = func(context.Context, string, ...ToolOption) (string, error)
+
+	dispatcher := make(map[string]handler, len(tools))
+	for _, tool := range tools {
+		dispatcher[tool.Function().Name] = tool.Execute
+	}
+
+	return func(ctx context.Context, call FunctionCall, opts ...ToolOption) (string, error) {
+		handle, ok := dispatcher[call.Name]
+		if !ok {
+			return "", fmt.Errorf("%w: %s", ErrToolNotFound, call.Name)
+		}
+		return handle(ctx, call.Arguments, opts...)
+	}
 }

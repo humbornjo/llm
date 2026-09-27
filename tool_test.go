@@ -2,6 +2,7 @@ package anyllm
 
 import (
 	"context"
+	"errors"
 	"iter"
 	"testing"
 )
@@ -36,5 +37,39 @@ func TestToolConfig(t *testing.T) {
 	}
 	if config.Metadata["request_id"] != "request-1" {
 		t.Fatalf("metadata = %#v", config.Metadata)
+	}
+}
+
+func TestNewToolsHandler(t *testing.T) {
+	type input struct {
+		Value string `json:"value"`
+	}
+	tool := NewTool(
+		ToolInfo{Type: "function", Function: Function{Name: "echo"}},
+		func(_ context.Context, args input, opts ...ToolOption) (string, error) {
+			var config ToolConfig
+			for _, opt := range opts {
+				opt(&config)
+			}
+			return args.Value + ":" + config.Metadata["suffix"].(string), nil
+		},
+		nil,
+	)
+	handle := NewToolsHandler(tool)
+
+	got, err := handle(
+		t.Context(), FunctionCall{Name: "echo", Arguments: `{"value":"hello"}`},
+		WithToolMetadata(map[string]any{"suffix": "world"}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "hello:world" {
+		t.Fatalf("handle() = %q", got)
+	}
+
+	_, err = handle(t.Context(), FunctionCall{Name: "missing"})
+	if !errors.Is(err, ErrToolNotFound) {
+		t.Fatalf("handle(missing) error = %v", err)
 	}
 }
