@@ -31,28 +31,23 @@ type Provider struct {
 func New(opts ...config.Option) (*Provider, error) {
 	base, err := NewCompatible(CompatibleConfig{
 		APIKeyEnvVar:   _ENV_API_KEY,
-		Capabilities:   capabilities(),
 		DefaultBaseURL: _DEFAULT_BASE_URL,
 		Name:           _PROVIDER_NAME,
 		RequireAPIKey:  true,
+		Capabilities: providers.Capabilities{
+			Completion:          true,
+			CompletionImage:     true,
+			CompletionPDF:       false,
+			CompletionReasoning: true,
+			CompletionStreaming: true,
+			CompletionTools:     true,
+			Embedding:           true,
+			ListModels:          true,
+		},
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Provider{CompatibleProvider: base}, nil
-}
-
-// capabilities returns the capabilities for the OpenAI provider.
-func capabilities() providers.Capabilities {
-	return providers.Capabilities{
-		Completion:          true,
-		CompletionImage:     true,
-		CompletionPDF:       false,
-		CompletionReasoning: true,
-		CompletionStreaming: true,
-		CompletionTools:     true,
-		Embedding:           true,
-		ListModels:          true,
-	}
 }

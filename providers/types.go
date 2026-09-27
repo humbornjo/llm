@@ -288,6 +288,13 @@ type InputAudio struct {
 	Format string `json:"format"`
 }
 
+// VideoURL represents a video URL in a message: a base64 data URL or a
+// provider file reference (e.g. Kimi's ms://file-id). It is a provider
+// extension beyond the OpenAI content model.
+type VideoURL struct {
+	URL string `json:"url"`
+}
+
 // File represents an file input in a message.
 type File struct {
 	FileId   string `json:"file_id,omitempty"`
@@ -395,10 +402,10 @@ type CompletionTokensDetails struct {
 
 // ContentParts extracts content parts from a message.
 func (m *Message) ContentParts() []ContentPart {
-	if m == nil || m.Content == nil {
+	if m == nil {
 		return nil
 	}
-	parts, ok := m.Content.(*ContentParts)
+	parts, ok := m.Content.Unwrap().(*ContentParts)
 	if !ok || parts == nil {
 		return nil
 	}
@@ -407,10 +414,10 @@ func (m *Message) ContentParts() []ContentPart {
 
 // ContentString extracts string content from a message.
 func (m *Message) ContentString() string {
-	if m == nil || m.Content == nil {
+	if m == nil {
 		return ""
 	}
-	text, ok := m.Content.(*ContentString)
+	text, ok := m.Content.Unwrap().(*ContentString)
 	if !ok || text == nil {
 		return ""
 	}

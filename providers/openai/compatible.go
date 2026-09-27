@@ -4,11 +4,14 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
 	stderrors "errors"
 	"fmt"
+	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/shared"
 
 	"github.com/humbornjo/llm/config"
@@ -35,9 +38,6 @@ const (
 	_OBJECT_MODEL                 = "model"
 )
 
-// Content part types.
-const ()
-
 // Response format types.
 const (
 	_RESPONSE_FORMAT_JSON_OBJECT = "json_object"
@@ -56,14 +56,10 @@ type CompatibleConfig struct {
 	// Capabilities describes what the provider supports.
 	Capabilities providers.Capabilities
 
-	// DefaultAPIKey is used when RequireAPIKey is false (e.g., for local servers).
-	DefaultAPIKey string
-
-	// DefaultBaseURL is the default API base URL.
-	DefaultBaseURL string
-
-	// Name is the provider name used in error messages.
-	Name string
+	// ChatCompletionChunkTransform is the streaming counterpart of
+	// ChatCompletionResponseTransform, applied to each chunk after
+	// conversion. Nil means no transformation.
+	ChatCompletionChunkTransform func(*openai.ChatCompletionChunk, *providers.ChatCompletionChunk)
 
 	// ChatCompletionRequestTransform is an optional function that modifies the chat
 	// completion request after convertParams() builds it and before it is serialized
@@ -72,6 +68,22 @@ type CompatibleConfig struct {
 	// The pointer refers to a locally-constructed value owned by the caller; the
 	// function must not retain it beyond the call. Nil means no transformation.
 	ChatCompletionRequestTransform func(*openai.ChatCompletionNewParams)
+
+	// ChatCompletionResponseTransform is an optional function that maps provider
+	// response fields beyond the OpenAI spec (e.g. Kimi's reasoning_content)
+	// into the normalized completion after convertResponse() builds it. The
+	// pointers refer to locally-constructed values owned by the caller; the
+	// function must not retain them beyond the call. Nil means no transformation.
+	ChatCompletionResponseTransform func(*openai.ChatCompletion, *providers.ChatCompletion)
+
+	// DefaultAPIKey is used when RequireAPIKey is false (e.g., for local servers).
+	DefaultAPIKey string
+
+	// DefaultBaseURL is the default API base URL.
+	DefaultBaseURL string
+
+	// Name is the provider name used in error messages.
+	Name string
 
 	// RequireAPIKey indicates whether an API key is required.
 	RequireAPIKey bool
@@ -178,7 +190,11 @@ func (p *CompatibleProvider) Completion(
 		return nil, p.ConvertError(err)
 	}
 
-	return convertResponse(resp), nil
+	result := convertResponse(resp)
+	if p.compatibleConfig.ChatCompletionResponseTransform != nil {
+		p.compatibleConfig.ChatCompletionResponseTransform(resp, result)
+	}
+	return result, nil
 }
 
 // CompletionStream performs a streaming chat completion request.
@@ -214,8 +230,12 @@ func (p *CompatibleProvider) CompletionStream(ctx context.Context, params provid
 				return
 			}
 			chunk := stream.Current()
+			converted := convertChunk(&chunk)
+			if p.compatibleConfig.ChatCompletionChunkTransform != nil {
+				p.compatibleConfig.ChatCompletionChunkTransform(&chunk, &converted)
+			}
 			select {
-			case chunks <- convertChunk(&chunk):
+			case chunks <- converted:
 			case <-ctx.Done():
 				// Caller cancelled mid-stream; surface ctx.Err() so the
 				// consumer can tell a cancelled stream apart from one
@@ -333,7 +353,12 @@ func convertAPIError(name string, apiErr *openai.Error, originalErr error) error
 }
 
 // convertAssistantMessage converts an assistant message to OpenAI format.
-func convertAssistantMessage(msg providers.Message) openai.ChatCompletionMessageParamUnion {
+func convertAssistantMessage(msg providers.Message) (openai.ChatCompletionMessageParamUnion, error) {
+	text, err := contentText(msg)
+	if err != nil {
+		return openai.ChatCompletionMessageParamUnion{}, err
+	}
+
 	if len(msg.ToolCalls) > 0 {
 		toolCalls := make([]openai.ChatCompletionMessageToolCallParam, 0, len(msg.ToolCalls))
 		for _, tc := range msg.ToolCalls {
@@ -345,16 +370,47 @@ func convertAssistantMessage(msg providers.Message) openai.ChatCompletionMessage
 				},
 			})
 		}
-		return openai.ChatCompletionMessageParamUnion{
-			OfAssistant: &openai.ChatCompletionAssistantMessageParam{
-				Content: openai.ChatCompletionAssistantMessageParamContentUnion{
-					OfString: openai.String(msg.ContentString()),
-				},
-				ToolCalls: toolCalls,
-			},
+		assistant := &openai.ChatCompletionAssistantMessageParam{
+			ToolCalls: toolCalls,
 		}
+		// Beside tool calls the content field may be omitted, and strict
+		// providers reject an explicit empty string.
+		if text != "" {
+			assistant.Content.OfString = openai.String(text)
+		}
+		return openai.ChatCompletionMessageParamUnion{
+			OfAssistant: assistant,
+		}, nil
 	}
-	return openai.AssistantMessage(msg.ContentString())
+	return openai.AssistantMessage(text), nil
+}
+
+// contentText reduces message content to plain text for the chat wire:
+// scalar content is returned as-is, and parts-backed content
+// concatenates its text parts. System, tool, and assistant messages
+// carry only text on the wire, so any other part kind is an error
+// rather than silently dropped. ContentString alone would read
+// parts-backed content as empty.
+func contentText(msg providers.Message) (string, error) {
+	if !msg.IsMultiModal() {
+		return msg.ContentString(), nil
+	}
+	var text strings.Builder
+	for _, part := range msg.ContentParts() {
+		value := part.Unwrap()
+		if value == nil {
+			return "", fmt.Errorf("%s message content part must not be nil", msg.Role)
+		}
+		textPart, ok := value.(*providers.ContentPartText)
+		if !ok {
+			return "", fmt.Errorf(
+				"%s message content supports only text parts, got %q",
+				msg.Role, value.GetType(),
+			)
+		}
+		text.WriteString(textPart.Text)
+	}
+	return text.String(), nil
 }
 
 // convertChunk converts an OpenAI streaming chunk to provider format.
@@ -473,13 +529,21 @@ func convertEmbeddingResponse(resp *openai.CreateEmbeddingResponse) *providers.E
 func convertMessage(msg providers.Message) (openai.ChatCompletionMessageParamUnion, error) {
 	switch msg.Role {
 	case providers.ROLE_ASSISTANT:
-		return convertAssistantMessage(msg), nil
+		return convertAssistantMessage(msg)
 	case providers.ROLE_SYSTEM:
-		return openai.SystemMessage(msg.ContentString()), nil
+		text, err := contentText(msg)
+		if err != nil {
+			return openai.ChatCompletionMessageParamUnion{}, err
+		}
+		return openai.SystemMessage(text), nil
 	case providers.ROLE_TOOL:
-		return openai.ToolMessage(msg.ContentString(), msg.ToolCallID), nil
+		text, err := contentText(msg)
+		if err != nil {
+			return openai.ChatCompletionMessageParamUnion{}, err
+		}
+		return openai.ToolMessage(text, msg.ToolCallID), nil
 	case providers.ROLE_USER:
-		return convertUserMessage(msg), nil
+		return convertUserMessage(msg)
 	default:
 		return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf("unknown message role: %q", msg.Role)
 	}
@@ -723,24 +787,79 @@ func convertTools(tools []providers.ToolInfo) []openai.ChatCompletionToolParam {
 }
 
 // convertUserMessage converts a user message to OpenAI format.
-func convertUserMessage(msg providers.Message) openai.ChatCompletionMessageParamUnion {
-	if msg.IsMultiModal() {
-		parts := make([]openai.ChatCompletionContentPartUnionParam, 0, len(msg.ContentParts()))
-		for _, part := range msg.ContentParts() {
-			switch part := part.(type) {
-			case *providers.ContentPartText:
-				parts = append(parts, openai.TextContentPart(part.Text))
-			case *providers.ContentPartImage:
-				if part.ImageURL != nil {
-					parts = append(parts, openai.ImageContentPart(openai.ChatCompletionContentPartImageImageURLParam{
-						URL: part.ImageURL.URL,
-					}))
-				}
-			}
-		}
-		return openai.UserMessage(parts)
+func convertUserMessage(msg providers.Message) (openai.ChatCompletionMessageParamUnion, error) {
+	if !msg.IsMultiModal() {
+		return openai.UserMessage(msg.ContentString()), nil
 	}
-	return openai.UserMessage(msg.ContentString())
+
+	parts := make([]openai.ChatCompletionContentPartUnionParam, 0, len(msg.ContentParts()))
+	for _, part := range msg.ContentParts() {
+		switch value := part.Unwrap().(type) {
+		case *providers.ContentPartText:
+			parts = append(parts, openai.TextContentPart(value.Text))
+		case *providers.ContentPartImage:
+			if value.ImageURL == nil {
+				return openai.ChatCompletionMessageParamUnion{}, stderrors.New(
+					"image content part requires image_url",
+				)
+			}
+			parts = append(parts, openai.ImageContentPart(openai.ChatCompletionContentPartImageImageURLParam{
+				URL:    value.ImageURL.URL,
+				Detail: value.ImageURL.Detail,
+			}))
+		case *providers.ContentPartAudio:
+			if value.InputAudio == nil {
+				return openai.ChatCompletionMessageParamUnion{}, stderrors.New(
+					"audio content part requires input_audio",
+				)
+			}
+			parts = append(
+				parts,
+				openai.InputAudioContentPart(openai.ChatCompletionContentPartInputAudioInputAudioParam{
+					Data:   value.InputAudio.Data,
+					Format: value.InputAudio.Format,
+				}),
+			)
+		case *providers.ContentPartFile:
+			if value.File == nil {
+				return openai.ChatCompletionMessageParamUnion{}, stderrors.New(
+					"file content part requires file",
+				)
+			}
+			file := openai.ChatCompletionContentPartFileFileParam{}
+			if value.File.FileId != "" {
+				file.FileID = openai.String(value.File.FileId)
+			}
+			if value.File.FileName != "" {
+				file.Filename = openai.String(value.File.FileName)
+			}
+			if value.File.FileData != "" {
+				file.FileData = openai.String(value.File.FileData)
+			}
+			parts = append(parts, openai.FileContentPart(file))
+		case *providers.ContentPartVideo:
+			if value.VideoURL == nil {
+				return openai.ChatCompletionMessageParamUnion{}, stderrors.New(
+					"video content part requires video_url",
+				)
+			}
+			// The OpenAI spec has no video part; video_url is a provider
+			// extension (e.g. Kimi), so emit the raw wire form through
+			// the SDK's union override.
+			raw, err := json.Marshal(value)
+			if err != nil {
+				return openai.ChatCompletionMessageParamUnion{}, err
+			}
+			parts = append(parts, param.Override[openai.ChatCompletionContentPartUnionParam](
+				json.RawMessage(raw),
+			))
+		default:
+			return openai.ChatCompletionMessageParamUnion{}, fmt.Errorf(
+				"unknown content part type %T", value,
+			)
+		}
+	}
+	return openai.UserMessage(parts), nil
 }
 
 // resolveAPIKey resolves the API key from config or environment.

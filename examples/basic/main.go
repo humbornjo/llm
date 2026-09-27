@@ -37,7 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Response: %s\n", response.Choices[0].Message.Content)
+	fmt.Printf("Response: %s\n", response.Choices[0].Message.ContentString())
 	fmt.Printf("Model: %s\n", response.Model)
 	fmt.Printf("Tokens used: %d\n", response.Usage.TotalTokens)
 }

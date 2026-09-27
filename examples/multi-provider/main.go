@@ -69,7 +69,7 @@ func tryProvider(ctx context.Context, providerName, model, prompt string) error 
 		return err
 	}
 
-	fmt.Printf("  Response: %s\n", response.Choices[0].Message.Content)
+	fmt.Printf("  Response: %s\n", response.Choices[0].Message.ContentString())
 	fmt.Printf("  Tokens: %d\n\n", response.Usage.TotalTokens)
 	return nil
 }
