@@ -422,8 +422,11 @@ func TestAnthropic_ConvertMessage(t *testing.T) {
 		expectNil bool
 	}{
 		{
-			name:      "system role returns nil",
-			msg:       providers.Message{Role: providers.ROLE_SYSTEM, Content: providers.ContentFromString("System prompt")},
+			name: "system role returns nil",
+			msg: providers.Message{
+				Role:    providers.ROLE_SYSTEM,
+				Content: providers.ContentFromString("System prompt"),
+			},
 			expectNil: true,
 		},
 		{
@@ -437,13 +440,20 @@ func TestAnthropic_ConvertMessage(t *testing.T) {
 			expectNil: false,
 		},
 		{
-			name:      "assistant role converts",
-			msg:       providers.Message{Role: providers.ROLE_ASSISTANT, Content: providers.ContentFromString("Hi there!")},
+			name: "assistant role converts",
+			msg: providers.Message{
+				Role:    providers.ROLE_ASSISTANT,
+				Content: providers.ContentFromString("Hi there!"),
+			},
 			expectNil: false,
 		},
 		{
-			name:      "tool role converts",
-			msg:       providers.Message{Role: providers.ROLE_TOOL, Content: providers.ContentFromString("Result"), ToolCallID: "call_123"},
+			name: "tool role converts",
+			msg: providers.Message{
+				Role:       providers.ROLE_TOOL,
+				Content:    providers.ContentFromString("Result"),
+				ToolCallID: "call_123",
+			},
 			expectNil: false,
 		},
 	}
@@ -871,13 +881,12 @@ func TestAnthropic_IntegrationCompletionStream(t *testing.T) {
 		Stream:   true,
 	}
 
-	chunks := provider.CompletionStream(ctx, params)
+	chunks, errs := provider.CompletionStream(ctx, params)
 
 	var content strings.Builder
 	chunkCount := 0
 
-	for chunk, streamErr := range chunks {
-		require.NoError(t, streamErr)
+	for chunk := range chunks {
 		chunkCount++
 		require.Equal(t, "chat.completion.chunk", chunk.Object)
 		if len(chunk.Choices) > 0 {
@@ -885,11 +894,12 @@ func TestAnthropic_IntegrationCompletionStream(t *testing.T) {
 		}
 	}
 
+	require.NoError(t, <-errs)
 	require.Greater(t, chunkCount, 0)
 	require.NotEmpty(t, content.String())
 }
 
-func TestAnthropic_CompletionStreamEarlyStopClosesRequest(t *testing.T) {
+func TestAnthropic_CompletionStreamCancellationClosesRequest(t *testing.T) {
 	requestDone := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -912,16 +922,22 @@ data: {"type":"message_start","message":{"id":"msg-test","type":"message","role"
 		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 
-	for _, streamErr := range provider.CompletionStream(t.Context(), params) {
-		require.NoError(t, streamErr)
-		break
-	}
+	ctx, cancel := context.WithCancel(t.Context())
+	chunks, errs := provider.CompletionStream(ctx, params)
+
+	// Receive the first chunk, then cancel the stream.
+	first, ok := <-chunks
+	require.True(t, ok)
+	require.Equal(t, "msg-test", first.ID)
+	cancel()
 
 	select {
 	case <-requestDone:
 	case <-time.After(time.Second):
-		t.Fatal("request remained active after iteration stopped")
+		t.Fatal("request remained active after cancellation")
 	}
+
+	require.ErrorIs(t, <-errs, context.Canceled)
 }
 
 func TestAnthropic_IntegrationCompletionWithTools(t *testing.T) {
@@ -1001,7 +1017,10 @@ func TestAnthropic_IntegrationAgentLoop(t *testing.T) {
 
 	// Step 1: Send initial message asking about weather.
 	messages := []providers.Message{
-		{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool.")},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("What is the weather in Paris? Use the get_weather tool."),
+		},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -1068,7 +1087,10 @@ func TestAnthropic_IntegrationAgentLoopMultipleParams(t *testing.T) {
 
 	// Ask the model to use the calculator with specific values.
 	messages := []providers.Message{
-		{Role: providers.ROLE_USER, Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together.")},
+		{
+			Role:    providers.ROLE_USER,
+			Content: providers.ContentFromString("Use the calculate tool to add 15 and 27 together."),
+		},
 	}
 
 	resp, err := provider.Completion(ctx, providers.CompletionParams{
@@ -1166,7 +1188,10 @@ func TestAnthropic_IntegrationCompletionReasoning(t *testing.T) {
 	params := providers.CompletionParams{
 		Model: model,
 		Messages: []providers.Message{
-			{Role: providers.ROLE_USER, Content: providers.ContentFromString("Please say hello! Think very briefly before you respond.")},
+			{
+				Role:    providers.ROLE_USER,
+				Content: providers.ContentFromString("Please say hello! Think very briefly before you respond."),
+			},
 		},
 		ReasoningEffort: providers.REASONING_EFFORT_LOW,
 	}
@@ -1266,7 +1291,10 @@ func TestAnthropic_IntegrationCompletionWithStructuredOutput(t *testing.T) {
 	result, err := provider.Completion(ctx, providers.CompletionParams{
 		Model: testutil.TestModel("anthropic"),
 		Messages: []providers.Message{
-			{Role: providers.ROLE_USER, Content: providers.ContentFromString("What is 2+2? Respond using the provided schema.")},
+			{
+				Role:    providers.ROLE_USER,
+				Content: providers.ContentFromString("What is 2+2? Respond using the provided schema."),
+			},
 		},
 		ResponseFormat: &providers.ResponseFormat{
 			Type: _RESPONSE_FORMAT_JSON_SCHEMA,
@@ -1383,7 +1411,10 @@ func TestAnthropic_ConvertParamsResponseFormat(t *testing.T) {
 		return providers.CompletionParams{
 			Model: "claude-3-5-haiku-20241022",
 			Messages: []providers.Message{
-				{Role: providers.ROLE_USER, Content: providers.ContentFromParts(&providers.ContentPartText{Text: "hello"})},
+				{
+					Role:    providers.ROLE_USER,
+					Content: providers.ContentFromParts(&providers.ContentPartText{Text: "hello"}),
+				},
 			},
 		}
 	}

@@ -428,11 +428,10 @@ func TestOpenAI_StreamingContextCancellation(t *testing.T) {
 			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 		}
 
-		var got error
-		for _, streamErr := range provider.CompletionStream(ctx, params) {
-			got = streamErr
+		chunks, errs := provider.CompletionStream(ctx, params)
+		for range chunks {
 		}
-		require.ErrorIs(t, got, context.Canceled)
+		require.ErrorIs(t, <-errs, context.Canceled)
 	})
 
 	t.Run("preserves deadline errors", func(t *testing.T) {
@@ -447,14 +446,13 @@ func TestOpenAI_StreamingContextCancellation(t *testing.T) {
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 		defer cancel()
 
-		var got error
-		for _, streamErr := range provider.CompletionStream(ctx, providers.CompletionParams{
+		chunks, errs := provider.CompletionStream(ctx, providers.CompletionParams{
 			Model:    "test-model",
 			Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
-		}) {
-			got = streamErr
+		})
+		for range chunks {
 		}
-		require.ErrorIs(t, got, context.DeadlineExceeded)
+		require.ErrorIs(t, <-errs, context.DeadlineExceeded)
 	})
 
 	// Regression for #85: context cancellation must be yielded explicitly so
@@ -491,23 +489,12 @@ func TestOpenAI_StreamingContextCancellation(t *testing.T) {
 			cancel()
 		}()
 
-		var (
-			chunkCount int
-			errorCount int
-			got        error
-		)
-		for chunk, streamErr := range provider.CompletionStream(ctx, params) {
-			if streamErr != nil {
-				errorCount++
-				got = streamErr
-				continue
-			}
-			if len(chunk.Choices) > 0 {
-				chunkCount++
-			}
+		chunks, errs := provider.CompletionStream(ctx, params)
+		chunkCount := 0
+		for range chunks {
+			chunkCount++
 		}
-		require.ErrorIs(t, got, context.Canceled)
-		require.Equal(t, 1, errorCount)
+		require.ErrorIs(t, <-errs, context.Canceled)
 		require.Zero(t, chunkCount)
 	})
 }
@@ -518,45 +505,14 @@ func TestOpenAI_CompletionStreamLifecycle(t *testing.T) {
 		Messages: []providers.Message{{Role: providers.ROLE_USER, Content: providers.ContentFromString("Hello")}},
 	}
 
-	t.Run("starts lazily", func(t *testing.T) {
-		requested := make(chan struct{})
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			close(requested)
-			w.Header().Set("Content-Type", "text/event-stream")
-			_, _ = w.Write([]byte("data: [DONE]\n\n"))
-		}))
-		t.Cleanup(srv.Close)
-
-		provider, err := NewCompatible(CompatibleConfig{
-			Name:           "test-provider",
-			DefaultBaseURL: srv.URL + "/v1",
-			DefaultAPIKey:  "test-key",
-		})
-		require.NoError(t, err)
-
-		stream := provider.CompletionStream(t.Context(), params)
-		select {
-		case <-requested:
-			t.Fatal("CompletionStream started before iteration")
-		default:
-		}
-
-		for _, streamErr := range stream {
-			require.NoError(t, streamErr)
-		}
-		select {
-		case <-requested:
-		case <-time.After(time.Second):
-			t.Fatal("CompletionStream did not start during iteration")
-		}
-	})
-
-	t.Run("stopping iteration closes the request", func(t *testing.T) {
+	t.Run("cancellation closes the request", func(t *testing.T) {
 		requestDone := make(chan struct{})
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/event-stream")
 			_, _ = w.Write(
-				[]byte("data: {\"id\":\"chunk\",\"object\":\"chat.completion.chunk\",\"model\":\"test-model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hello\"}}]}\n\n"),
+				[]byte(
+					"data: {\"id\":\"chunk\",\"object\":\"chat.completion.chunk\",\"model\":\"test-model\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hello\"}}]}\n\n",
+				),
 			)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
@@ -573,25 +529,37 @@ func TestOpenAI_CompletionStreamLifecycle(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		for _, streamErr := range provider.CompletionStream(t.Context(), params) {
-			require.NoError(t, streamErr)
-			break
-		}
+		ctx, cancel := context.WithCancel(t.Context())
+		chunks, errs := provider.CompletionStream(ctx, params)
+
+		// Receive the first chunk, then cancel the stream.
+		first, ok := <-chunks
+		require.True(t, ok)
+		require.Equal(t, "chunk", first.ID)
+		cancel()
 
 		select {
 		case <-requestDone:
 		case <-time.After(time.Second):
-			t.Fatal("request remained active after iteration stopped")
+			t.Fatal("request remained active after cancellation")
 		}
+
+		require.ErrorIs(t, <-errs, context.Canceled)
 	})
 
-	t.Run("parent cancellation closes the request while consumer is blocked", func(t *testing.T) {
+	t.Run("producer blocked on send unblocks on cancellation", func(t *testing.T) {
 		requestDone := make(chan struct{})
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/event-stream")
-			_, _ = w.Write([]byte(`data: {"id":"chunk","object":"chat.completion.chunk","model":"test-model","choices":[{"index":0,"delta":{"content":"hello"}}]}
+			_, _ = w.Write(
+				[]byte(
+					`data: {"id":"chunk-1","object":"chat.completion.chunk","model":"test-model","choices":[{"index":0,"delta":{"content":"one"}}]}
 
-`))
+data: {"id":"chunk-2","object":"chat.completion.chunk","model":"test-model","choices":[{"index":0,"delta":{"content":"two"}}]}
+
+`,
+				),
+			)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
@@ -607,44 +575,21 @@ func TestOpenAI_CompletionStreamLifecycle(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		consumerBlocked := make(chan struct{})
-		releaseConsumer := make(chan struct{})
-		iterationDone := make(chan error, 1)
-		go func() {
-			first := true
-			var got error
-			for _, streamErr := range provider.CompletionStream(ctx, params) {
-				if streamErr != nil {
-					got = streamErr
-					continue
-				}
-				if first {
-					first = false
-					close(consumerBlocked)
-					<-releaseConsumer
-				}
-			}
-			iterationDone <- got
-		}()
+		ctx, cancel := context.WithCancel(t.Context())
+		chunks, errs := provider.CompletionStream(ctx, params)
 
-		select {
-		case <-consumerBlocked:
-		case <-time.After(time.Second):
-			t.Fatal("consumer did not receive the first chunk")
-		}
+		// Read one chunk, then stop consuming. The producer blocks sending
+		// the second chunk until cancellation releases it.
+		first, ok := <-chunks
+		require.True(t, ok)
+		require.Equal(t, "chunk-1", first.ID)
 		cancel()
+
 		select {
 		case <-requestDone:
 		case <-time.After(time.Second):
-			t.Fatal("parent cancellation did not close the blocked stream request")
+			t.Fatal("cancellation did not close the blocked stream request")
 		}
-		close(releaseConsumer)
-		select {
-		case got := <-iterationDone:
-			require.ErrorIs(t, got, context.Canceled)
-		case <-time.After(time.Second):
-			t.Fatal("stream iteration did not finish after cancellation")
-		}
+		require.ErrorIs(t, <-errs, context.Canceled)
 	})
 }
