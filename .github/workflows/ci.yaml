@@ -7,22 +7,42 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Test
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
 
-      - name: Download dependencies
-        run: go mod download
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error title=gofmt::These files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
 
-      - name: Run unit tests
-        run: go test -v -race -short ./...
+      - name: Unit tests
+        run: go test -race -short ./...
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: git diff --check
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base commit available; skipping."
+            exit 0
+          fi
+          git diff --check "$base" HEAD
 
   lint:
     name: Lint
@@ -41,9 +61,10 @@ jobs:
           version: v2.12.2
 
   build:
-    name: Build
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         goos: [linux, darwin, windows]
         goarch: [amd64, arm64]

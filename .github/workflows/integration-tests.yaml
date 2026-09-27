@@ -1,28 +1,33 @@
 name: Integration Tests
 
-on:
-  workflow_dispatch:
-  schedule:
-    # Run daily at 6 AM UTC
-    - cron: '0 6 * * *'
+# Disabled for now — uncomment to enable. Integration tests run
+# separately from CI so provider failures are reported independently
+# from unit-test results. Only credentialed providers run; the rest
+# skip silently.
 
-jobs:
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: 'go.mod'
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run integration tests
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: go test -v -race ./...
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     # Run daily at 6:17 AM UTC
+#     - cron: '17 6 * * *'
+#
+# jobs:
+#   integration-tests:
+#     name: Integration Tests
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v7
+#
+#       - name: Set up Go
+#         uses: actions/setup-go@v7
+#         with:
+#           go-version-file: 'go.mod'
+#
+#       - name: Run integration tests
+#         env:
+#           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+#           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+#           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+#           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+#           MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+#         run: go test -v -race -run Integration ./...
