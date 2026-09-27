@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"context"
-	"iter"
 
 	"github.com/humbornjo/llm/providers"
 )
@@ -11,7 +10,7 @@ import (
 type MockProvider struct {
 	NameFunc             func() string
 	CompletionFunc       func(ctx context.Context, params providers.CompletionParams) (*providers.ChatCompletion, error)
-	CompletionStreamFunc func(ctx context.Context, params providers.CompletionParams) iter.Seq2[providers.ChatCompletionChunk, error]
+	CompletionStreamFunc func(ctx context.Context, params providers.CompletionParams) (<-chan providers.ChatCompletionChunk, <-chan error)
 	EmbeddingFunc        func(ctx context.Context, params providers.EmbeddingParams) (*providers.EmbeddingResponse, error)
 	ListModelsFunc       func(ctx context.Context) (*providers.ModelsResponse, error)
 	CapabilitiesFunc     func() providers.Capabilities
@@ -57,44 +56,52 @@ func NewMockProvider() *MockProvider {
 				},
 			}, nil
 		},
-		CompletionStreamFunc: func(ctx context.Context, params providers.CompletionParams) iter.Seq2[providers.ChatCompletionChunk, error] {
-			return func(yield func(providers.ChatCompletionChunk, error) bool) {
-				chunks := []providers.ChatCompletionChunk{
-					{
-						ID:     "mock-chunk-id",
-						Object: "chat.completion.chunk",
-						Model:  params.Model,
-						Choices: []providers.ChunkChoice{
-							{Index: 0, Delta: providers.ChunkDelta{Role: providers.ROLE_ASSISTANT}},
-						},
+		CompletionStreamFunc: func(ctx context.Context, params providers.CompletionParams) (<-chan providers.ChatCompletionChunk, <-chan error) {
+			chunks := make(chan providers.ChatCompletionChunk)
+			errs := make(chan error, 1)
+
+			mockChunks := []providers.ChatCompletionChunk{
+				{
+					ID:     "mock-chunk-id",
+					Object: "chat.completion.chunk",
+					Model:  params.Model,
+					Choices: []providers.ChunkChoice{
+						{Index: 0, Delta: providers.ChunkDelta{Role: providers.ROLE_ASSISTANT}},
 					},
-					{
-						ID:     "mock-chunk-id",
-						Object: "chat.completion.chunk",
-						Model:  params.Model,
-						Choices: []providers.ChunkChoice{
-							{Index: 0, Delta: providers.ChunkDelta{Content: "Hello World"}},
-						},
+				},
+				{
+					ID:     "mock-chunk-id",
+					Object: "chat.completion.chunk",
+					Model:  params.Model,
+					Choices: []providers.ChunkChoice{
+						{Index: 0, Delta: providers.ChunkDelta{Content: "Hello World"}},
 					},
-					{
-						ID:     "mock-chunk-id",
-						Object: "chat.completion.chunk",
-						Model:  params.Model,
-						Choices: []providers.ChunkChoice{
-							{Index: 0, FinishReason: providers.FINISH_REASON_STOP},
-						},
+				},
+				{
+					ID:     "mock-chunk-id",
+					Object: "chat.completion.chunk",
+					Model:  params.Model,
+					Choices: []providers.ChunkChoice{
+						{Index: 0, FinishReason: providers.FINISH_REASON_STOP},
 					},
-				}
-				for _, chunk := range chunks {
-					if err := ctx.Err(); err != nil {
-						yield(providers.ChatCompletionChunk{}, err)
-						return
-					}
-					if !yield(chunk, nil) {
-						return
-					}
-				}
+				},
 			}
+
+			go func() {
+				defer close(chunks)
+				defer close(errs)
+
+				for _, chunk := range mockChunks {
+					select {
+					case chunks <- chunk:
+					case <-ctx.Done():
+						errs <- ctx.Err()
+						return
+					}
+				}
+			}()
+
+			return chunks, errs
 		},
 		EmbeddingFunc: func(ctx context.Context, params providers.EmbeddingParams) (*providers.EmbeddingResponse, error) {
 			return &providers.EmbeddingResponse{
@@ -149,7 +156,7 @@ func (m *MockProvider) Completion(
 func (m *MockProvider) CompletionStream(
 	ctx context.Context,
 	params providers.CompletionParams,
-) iter.Seq2[providers.ChatCompletionChunk, error] {
+) (<-chan providers.ChatCompletionChunk, <-chan error) {
 	m.CompletionStreamCalls = append(m.CompletionStreamCalls, params)
 	return m.CompletionStreamFunc(ctx, params)
 }
