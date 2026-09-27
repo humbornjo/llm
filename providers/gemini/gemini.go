@@ -35,12 +35,6 @@ const (
 	_THINKING_BUDGET_MEDIUM int32 = 8192
 )
 
-// Content part types.
-const (
-	_CONTENT_PART_TYPE_IMAGE_URL = "image_url"
-	_CONTENT_PART_TYPE_TEXT      = "text"
-)
-
 // Gemini role constants.
 const (
 	_ROLE_MODEL = "model"
