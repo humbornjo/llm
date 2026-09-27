@@ -162,7 +162,6 @@ provider, err := moonshot.New(llm.WithAPIKey("sk-..."))
 **Environment Variable:** `MOONSHOT_API_KEY`
 
 **Popular Models:**
-- `moonshot-mock-lorem` - Fast thinking model
 
 See the [Kimi docs](https://platform.kimi.ai/docs) for the full model list.
 

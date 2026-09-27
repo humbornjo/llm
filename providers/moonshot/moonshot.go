@@ -5,6 +5,7 @@
 package moonshot
 
 import (
+	"context"
 	"encoding/json"
 
 	oaisdk "github.com/openai/openai-go"
@@ -71,6 +72,18 @@ func New(opts ...config.Option) (*Provider, error) {
 	}
 
 	return &Provider{CompatibleProvider: base}, nil
+}
+
+// ListModels returns available models, interpreting Kimi's extension
+// fields (context_tokens, capabilities) recorded in each model's raw
+// payload.
+func (p *Provider) ListModels(ctx context.Context) (*providers.ModelsResponse, error) {
+	resp, err := p.CompatibleProvider.ListModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	openai.InterpretModelExtensions(resp.Data)
+	return resp, nil
 }
 
 // convertChunkExtensions maps Kimi stream delta fields beyond the OpenAI

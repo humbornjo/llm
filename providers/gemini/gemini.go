@@ -320,9 +320,10 @@ func (p *Provider) ListModels(ctx context.Context) (*providers.ModelsResponse, e
 	for {
 		for _, m := range page.Items {
 			models = append(models, providers.Model{
-				ID:      m.Name,
-				Object:  _OBJECT_MODEL,
-				OwnedBy: "google",
+				ID:            m.Name,
+				Object:        _OBJECT_MODEL,
+				OwnedBy:       "google",
+				ContextWindow: int64(m.InputTokenLimit),
 			})
 		}
 
