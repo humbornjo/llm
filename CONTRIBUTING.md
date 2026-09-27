@@ -1,6 +1,6 @@
-# Contributing to any-llm-go
+# Contributing to llm
 
-Thank you for your interest in contributing to any-llm-go! This guide will help you get started.
+Thank you for your interest in contributing to llm! This guide will help you get started.
 
 ## Development Setup
 
@@ -16,7 +16,7 @@ Thank you for your interest in contributing to any-llm-go! This guide will help 
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/humbornjo/llm.git
-   cd any-llm-go
+   cd llm
    ```
 
 2. **Install dependencies:**
@@ -76,8 +76,8 @@ A CI workflow (`.github/workflows/version.yaml`) validates that the pushed tag m
 ## Project Structure
 
 ```
-any-llm-go/
-├── anyllm.go           # Root package - re-exports types for simple imports
+llm/
+├── llm.go           # Root package - re-exports types for simple imports
 ├── config/config.go    # Functional options pattern for configuration
 ├── errors/errors.go    # Normalized error types with sentinel errors
 ├── providers/
@@ -96,34 +96,12 @@ any-llm-go/
 
 ## Coding Standards
 
-### Go Conventions
+[`STYLE.md`](STYLE.md) is the authoritative style guide for this fork. Follow it
+for naming, control flow, package boundaries, streaming, errors, tests, and
+verification.
 
-- Follow [Effective Go](https://go.dev/doc/effective_go) guidelines
-- Use `gofmt` for formatting
-- Run `golangci-lint` before committing
-
-### Naming Conventions
-
-- **Packages:** lowercase, single word (`openai`, `anthropic`)
-- **Exported functions:** PascalCase (`New`, `Completion`)
-- **Unexported functions:** camelCase (`convertParams`, `parseResponse`)
-- **Constants:** PascalCase for exported, camelCase for unexported
-
-### Error Handling
-
-- Always check and handle errors
-- Use sentinel errors for error categories (`ErrRateLimit`, etc.)
-- Wrap errors with context using `fmt.Errorf("context: %w", err)`
-
-### Testing
-
-- Write unit tests for all new functionality
-- Use table-driven tests where appropriate
-- Use `testify/require` for assertions (not `assert`)
-- Use `t.Parallel()` except when using `t.Setenv()`
-- Use `t.Helper()` in test helpers
-- Name test case variables `tc`, not `tt`
-- Integration tests should skip gracefully when API keys are missing
+Use `gofmt` for changed Go files and run the unit/race tests, vet, and lint
+checks described there before committing.
 
 ## Adding a New Provider
 

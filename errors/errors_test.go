@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestErrorIs(t *testing.T) {
+func TestErrors_ErrorIs(t *testing.T) {
 	t.Parallel()
 
 	originalErr := stderrors.New("original error")
@@ -120,7 +120,7 @@ func TestErrorIs(t *testing.T) {
 	}
 }
 
-func TestErrorMessage(t *testing.T) {
+func TestErrors_ErrorMessage(t *testing.T) {
 	t.Parallel()
 
 	originalErr := stderrors.New("something went wrong")
@@ -174,83 +174,83 @@ func TestErrorMessage(t *testing.T) {
 	}
 }
 
-func TestErrorCodes(t *testing.T) {
+func TestErrors_ErrorCodes(t *testing.T) {
 	t.Parallel()
 
 	t.Run("RateLimitError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewRateLimitError("openai", nil)
-		require.Equal(t, CodeRateLimit, err.Code)
+		require.Equal(t, CODE_RATE_LIMIT, err.Code)
 	})
 
 	t.Run("AuthenticationError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewAuthenticationError("openai", nil)
-		require.Equal(t, CodeAuthError, err.Code)
+		require.Equal(t, CODE_AUTH_ERROR, err.Code)
 	})
 
 	t.Run("InvalidRequestError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewInvalidRequestError("openai", nil)
-		require.Equal(t, CodeInvalidRequest, err.Code)
+		require.Equal(t, CODE_INVALID_REQUEST, err.Code)
 	})
 
 	t.Run("ContextLengthError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewContextLengthError("openai", nil)
-		require.Equal(t, CodeContextLength, err.Code)
+		require.Equal(t, CODE_CONTEXT_LENGTH, err.Code)
 	})
 
 	t.Run("ContentFilterError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewContentFilterError("openai", nil)
-		require.Equal(t, CodeContentFilter, err.Code)
+		require.Equal(t, CODE_CONTENT_FILTER, err.Code)
 	})
 
 	t.Run("ModelNotFoundError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewModelNotFoundError("openai", nil)
-		require.Equal(t, CodeModelNotFound, err.Code)
+		require.Equal(t, CODE_MODEL_NOT_FOUND, err.Code)
 	})
 
 	t.Run("ProviderError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewProviderError("openai", nil)
-		require.Equal(t, CodeProviderError, err.Code)
+		require.Equal(t, CODE_PROVIDER_ERROR, err.Code)
 	})
 
 	t.Run("MissingAPIKeyError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewMissingAPIKeyError("openai", "OPENAI_API_KEY")
-		require.Equal(t, CodeMissingAPIKey, err.Code)
+		require.Equal(t, CODE_MISSING_API_KEY, err.Code)
 	})
 
 	t.Run("UnsupportedProviderError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewUnsupportedProviderError("unknown")
-		require.Equal(t, CodeUnsupportedProvider, err.Code)
+		require.Equal(t, CODE_UNSUPPORTED_PROVIDER, err.Code)
 	})
 
 	t.Run("UnsupportedParamError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewUnsupportedParamError("openai", "param")
-		require.Equal(t, CodeUnsupportedParam, err.Code)
+		require.Equal(t, CODE_UNSUPPORTED_PARAM, err.Code)
 	})
 
 	t.Run("InsufficientFundsError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewInsufficientFundsError("gateway", nil)
-		require.Equal(t, CodeInsufficientFunds, err.Code)
+		require.Equal(t, CODE_INSUFFICIENT_FUNDS, err.Code)
 	})
 
 	t.Run("UnsupportedOperationError has correct code", func(t *testing.T) {
 		t.Parallel()
 		err := NewUnsupportedOperationError("anthropic", "moderation", nil)
-		require.Equal(t, CodeUnsupported, err.Code)
+		require.Equal(t, CODE_UNSUPPORTED, err.Code)
 	})
 }
 
-func TestErrorAs(t *testing.T) {
+func TestErrors_ErrorAs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("can extract RateLimitError with RetryAfter", func(t *testing.T) {

@@ -1,4 +1,4 @@
-package anyllm
+package llm
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func (executableTool) ExecuteStream(context.Context, string, ...ToolOption) iter
 	}
 }
 
-func TestToolConfig(t *testing.T) {
+func TestLLM_ToolConfig(t *testing.T) {
 	metadata := map[string]any{"request_id": "request-1"}
 	var config ToolConfig
 	for _, opt := range []ToolOption{WithToolMetadata(metadata)} {
@@ -40,7 +40,7 @@ func TestToolConfig(t *testing.T) {
 	}
 }
 
-func TestNewToolsHandler(t *testing.T) {
+func TestLLM_NewToolsHandler(t *testing.T) {
 	type input struct {
 		Value string `json:"value"`
 	}

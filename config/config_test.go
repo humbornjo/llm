@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWithAPIKey(t *testing.T) {
+func TestConfig_WithAPIKey(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -57,7 +57,7 @@ func TestWithAPIKey(t *testing.T) {
 	}
 }
 
-func TestWithBaseURL(t *testing.T) {
+func TestConfig_WithBaseURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -133,7 +133,7 @@ func TestWithBaseURL(t *testing.T) {
 	}
 }
 
-func TestWithTimeout(t *testing.T) {
+func TestConfig_WithTimeout(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -182,7 +182,7 @@ func TestWithTimeout(t *testing.T) {
 	}
 }
 
-func TestWithHTTPClient(t *testing.T) {
+func TestConfig_WithHTTPClient(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -218,7 +218,7 @@ func TestWithHTTPClient(t *testing.T) {
 	}
 }
 
-func TestHTTPClientLazyCreation(t *testing.T) {
+func TestConfig_HTTPClientLazyCreation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("uses configured timeout", func(t *testing.T) {
@@ -257,7 +257,7 @@ func TestHTTPClientLazyCreation(t *testing.T) {
 	})
 }
 
-func TestWithExtra(t *testing.T) {
+func TestConfig_WithExtra(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -314,7 +314,7 @@ func TestWithExtra(t *testing.T) {
 	}
 }
 
-func TestExtraValue(t *testing.T) {
+func TestConfig_ExtraValue(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -371,7 +371,7 @@ func TestExtraValue(t *testing.T) {
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestConfig_New(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -433,7 +433,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestResolveAPIKey(t *testing.T) {
+func TestConfig_ResolveAPIKey(t *testing.T) {
 	// Note: Cannot use t.Parallel() with t.Setenv().
 
 	tests := []struct {
@@ -479,7 +479,7 @@ func TestResolveAPIKey(t *testing.T) {
 	}
 }
 
-func TestResolveEnv(t *testing.T) {
+func TestConfig_ResolveEnv(t *testing.T) {
 	// Note: Cannot use t.Parallel() with t.Setenv().
 
 	t.Run("returns trimmed env value", func(t *testing.T) {
@@ -503,7 +503,7 @@ func TestResolveEnv(t *testing.T) {
 	})
 }
 
-func TestResolveBaseURL(t *testing.T) {
+func TestConfig_ResolveBaseURL(t *testing.T) {
 	// Note: Cannot use t.Parallel() with t.Setenv().
 
 	t.Run("uses config BaseURL first", func(t *testing.T) {
@@ -560,7 +560,7 @@ func TestResolveBaseURL(t *testing.T) {
 	})
 }
 
-func TestHTTPClientCaching(t *testing.T) {
+func TestConfig_HTTPClientCaching(t *testing.T) {
 	t.Parallel()
 
 	cfg, err := New()
