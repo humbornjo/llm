@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
+	"iter"
 	"log"
 	"strings"
 	"time"
@@ -180,61 +181,56 @@ func (p *Provider) Completion(
 func (p *Provider) CompletionStream(
 	ctx context.Context,
 	params providers.CompletionParams,
-) (<-chan providers.ChatCompletionChunk, <-chan error) {
-	chunks := make(chan providers.ChatCompletionChunk)
-	errs := make(chan error, 1)
-
-	go func() {
-		defer close(chunks)
-		defer close(errs)
+) iter.Seq2[providers.ChatCompletionChunk, error] {
+	return func(yield func(providers.ChatCompletionChunk, error) bool) {
+		streamCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
 
 		contents, cfg := p.convertParams(params)
 		state, err := newStreamState(params.Model)
 		if err != nil {
-			select {
-			case errs <- err:
-			case <-ctx.Done():
-			}
+			yield(providers.ChatCompletionChunk{}, err)
 			return
 		}
 
-		for resp, err := range p.client.Models.GenerateContentStream(ctx, params.Model, contents, cfg) {
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+			return
+		}
+
+		for resp, err := range p.client.Models.GenerateContentStream(streamCtx, params.Model, contents, cfg) {
+			if ctxErr := streamCtx.Err(); ctxErr != nil {
+				yield(providers.ChatCompletionChunk{}, ctxErr)
+				return
+			}
 			if err != nil {
-				select {
-				case errs <- p.ConvertError(err):
-				case <-ctx.Done():
-				}
+				yield(providers.ChatCompletionChunk{}, p.ConvertError(err))
 				return
 			}
 
 			responseChunks, err := state.processResponse(resp)
 			if err != nil {
-				select {
-				case errs <- err:
-				case <-ctx.Done():
-				}
+				yield(providers.ChatCompletionChunk{}, err)
 				return
 			}
 
 			for _, chunk := range responseChunks {
-				select {
-				case chunks <- chunk:
-				case <-ctx.Done():
+				if !yield(chunk, nil) {
 					return
 				}
 			}
 		}
 
+		if err := streamCtx.Err(); err != nil {
+			yield(providers.ChatCompletionChunk{}, err)
+			return
+		}
+
 		// Emit final chunk with finish reason and usage.
 		if finalChunk := state.finalChunk(); finalChunk != nil {
-			select {
-			case chunks <- *finalChunk:
-			case <-ctx.Done():
-			}
+			yield(*finalChunk, nil)
 		}
-	}()
-
-	return chunks, errs
+	}
 }
 
 // ConvertError converts a Gemini SDK error to a unified error type.
