@@ -6,7 +6,7 @@ require (
 	github.com/anthropics/anthropic-sdk-go v1.41.0
 	github.com/openai/openai-go v1.12.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/genai v1.56.0
+	google.golang.org/genai v1.71.0
 )
 
 require (
