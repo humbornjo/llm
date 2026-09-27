@@ -556,8 +556,72 @@ func TestOpenAI_CompletionStreamSendsMaxCompletionTokensOnWire(t *testing.T) {
 	require.Equal(t, float64(1024), body["max_completion_tokens"])
 }
 
-// Integration tests - only run if API key is available.
+const modelsFixture = `{
+	"object": "list",
+	"data": [
+		{
+			"id": "openai-mock-lorem",
+			"object": "model",
+			"owned_by": "mock-owner",
+			"context_tokens": 1050000,
+			"output_tokens": 128000,
+			"capabilities": {
+				"tool_call": true,
+				"reasoning": true,
+				"input_modalities": ["text", "image"],
+				"output_modalities": ["text"],
+				"support_efforts": ["low", "medium", "high", "xhigh", "max"],
+				"default_effort": "medium"
+			}
+		},
+		{
+			"id": "openai-mock-ipsum",
+			"object": "model",
+			"created": 1728000000,
+			"owned_by": "openai"
+		}
+	]
+}`
 
+func TestOpenAI_ListModels(t *testing.T) {
+	t.Parallel()
+
+	serverURL := testutil.FakeModelsServer(t, modelsFixture)
+
+	provider, err := New(
+		config.WithAPIKey("test-key"),
+		config.WithBaseURL(serverURL),
+	)
+	require.NoError(t, err)
+
+	resp, err := provider.ListModels(context.Background())
+	require.NoError(t, err)
+	require.Len(t, resp.Data, 2)
+
+	extended := resp.Data[0]
+	require.Equal(t, "openai-mock-lorem", extended.ID)
+	require.Equal(t, int64(1050000), extended.ContextWindow)
+	require.Equal(t, providers.REASONING_EFFORT_MEDIUM, extended.DefaultEffort)
+	require.Equal(t, []providers.ReasoningEffort{
+		providers.REASONING_EFFORT_LOW,
+		providers.REASONING_EFFORT_MEDIUM,
+		providers.REASONING_EFFORT_HIGH,
+		providers.ReasoningEffort("xhigh"),
+		providers.REASONING_EFFORT_MAX,
+	}, extended.SupportEfforts)
+	require.Contains(t, string(extended.ProviderRaw), "context_tokens")
+
+	plain := resp.Data[1]
+	require.Equal(t, "openai-mock-ipsum", plain.ID)
+	require.Equal(t, int64(1728000000), plain.Created)
+	require.Equal(t, "openai", plain.OwnedBy)
+	require.Zero(t, plain.ContextWindow)
+	require.Empty(t, plain.DefaultEffort)
+	require.Nil(t, plain.SupportEfforts)
+	require.NotEmpty(t, plain.ProviderRaw)
+}
+
+// Integration tests - only run if API key is available.
 func TestOpenAI_IntegrationCompletion(t *testing.T) {
 	t.Parallel()
 

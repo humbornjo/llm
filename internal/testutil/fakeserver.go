@@ -74,6 +74,21 @@ func FakeCompletionServer(t *testing.T) (serverURL string, capturedBody func() m
 	}
 }
 
+// FakeModelsServer creates an httptest server that responds to every
+// request with the given list models JSON fixture.
+func FakeModelsServer(t *testing.T, fixture string) (serverURL string) {
+	t.Helper()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(fixture))
+	}))
+
+	t.Cleanup(srv.Close)
+
+	return srv.URL
+}
+
 // FakeStreamingServer creates an httptest server that captures the raw JSON
 // request body and returns a minimal valid OpenAI-compatible streaming (SSE)
 // response. The captured body is returned so callers can assert on the exact

@@ -19,6 +19,7 @@ const (
 	REASONING_EFFORT_AUTO   ReasoningEffort = "auto"
 	REASONING_EFFORT_HIGH   ReasoningEffort = "high"
 	REASONING_EFFORT_LOW    ReasoningEffort = "low"
+	REASONING_EFFORT_MAX    ReasoningEffort = "max"
 	REASONING_EFFORT_MEDIUM ReasoningEffort = "medium"
 	REASONING_EFFORT_NONE   ReasoningEffort = "none"
 )
@@ -321,10 +322,21 @@ type Message struct {
 
 // Model represents a model from the list models API.
 type Model struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int64  `json:"created"`
-	OwnedBy string `json:"owned_by"`
+	// ContextWindow is the maximum input context in tokens, when the
+	// provider reports it (Anthropic, Gemini, Moonshot; zero otherwise).
+	ContextWindow int64 `json:"context_window,omitempty"`
+	Created       int64 `json:"created"`
+	// DefaultEffort is the model's default reasoning effort, when reported.
+	DefaultEffort ReasoningEffort `json:"default_effort,omitempty"`
+	ID            string          `json:"id"`
+	Object        string          `json:"object"`
+	OwnedBy       string          `json:"owned_by"`
+	// ProviderRaw holds the unmodified provider model payload, for
+	// providers that expose fields beyond the normalized ones.
+	ProviderRaw json.RawMessage `json:"provider_raw,omitempty"`
+	// SupportEfforts lists the reasoning efforts the model accepts, when
+	// reported. Values pass through as the provider reports them.
+	SupportEfforts []ReasoningEffort `json:"support_efforts,omitempty"`
 }
 
 // ModelsResponse represents a list models response.

@@ -300,12 +300,13 @@ func (p *CompatibleProvider) ListModels(ctx context.Context) (*providers.ModelsR
 	}
 
 	models := make([]providers.Model, 0, len(resp.Data))
-	for _, model := range resp.Data {
+	for i := range resp.Data {
 		models = append(models, providers.Model{
-			ID:      model.ID,
-			Object:  _OBJECT_MODEL,
-			Created: model.Created,
-			OwnedBy: string(model.OwnedBy),
+			ID:          resp.Data[i].ID,
+			Object:      _OBJECT_MODEL,
+			Created:     resp.Data[i].Created,
+			OwnedBy:     string(resp.Data[i].OwnedBy),
+			ProviderRaw: json.RawMessage(resp.Data[i].RawJSON()),
 		})
 	}
 
@@ -313,6 +314,29 @@ func (p *CompatibleProvider) ListModels(ctx context.Context) (*providers.ModelsR
 		Object: _OBJECT_LIST,
 		Data:   models,
 	}, nil
+}
+
+// InterpretModelExtensions fills normalized Model fields from the
+// provider-reported payload recorded in Model.ProviderRaw: context_tokens
+// plus capabilities.support_efforts and capabilities.default_effort.
+// Compatible endpoints serving this extension shape (e.g. Kimi, proxied
+// GPT) call it from their ListModels.
+func InterpretModelExtensions(models []providers.Model) {
+	for i := range models {
+		var extensions struct {
+			ContextTokens int64 `json:"context_tokens"`
+			Capabilities  struct {
+				DefaultEffort  providers.ReasoningEffort   `json:"default_effort"`
+				SupportEfforts []providers.ReasoningEffort `json:"support_efforts"`
+			} `json:"capabilities"`
+		}
+		if err := json.Unmarshal(models[i].ProviderRaw, &extensions); err != nil {
+			continue
+		}
+		models[i].ContextWindow = extensions.ContextTokens
+		models[i].DefaultEffort = extensions.Capabilities.DefaultEffort
+		models[i].SupportEfforts = extensions.Capabilities.SupportEfforts
+	}
 }
 
 // Name returns the provider name.

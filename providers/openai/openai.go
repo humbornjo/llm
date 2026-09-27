@@ -1,6 +1,8 @@
 package openai
 
 import (
+	"context"
+
 	"github.com/humbornjo/llm/config"
 	"github.com/humbornjo/llm/providers"
 )
@@ -54,4 +56,15 @@ func New(opts ...config.Option) (*Provider, error) {
 	}
 
 	return &Provider{CompatibleProvider: base}, nil
+}
+
+// ListModels returns available models, interpreting provider extension
+// fields (context window, supported efforts) when the endpoint reports them.
+func (p *Provider) ListModels(ctx context.Context) (*providers.ModelsResponse, error) {
+	resp, err := p.CompatibleProvider.ListModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	InterpretModelExtensions(resp.Data)
+	return resp, nil
 }

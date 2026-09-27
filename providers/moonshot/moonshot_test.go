@@ -39,6 +39,33 @@ data: [DONE]
 
 `
 
+const modelsFixture = `{
+	"object": "list",
+	"data": [
+		{
+			"id": "moonshot-mock-dolor",
+			"object": "model",
+			"owned_by": "mock-owner",
+			"context_tokens": 1048576,
+			"output_tokens": 1048576,
+			"capabilities": {
+				"tool_call": true,
+				"reasoning": true,
+				"input_modalities": ["text", "image", "video"],
+				"output_modalities": ["text"],
+				"support_efforts": ["low", "high", "max"],
+				"default_effort": "max"
+			}
+		},
+		{
+			"id": "moonshot-mock-amet",
+			"object": "model",
+			"created": 1728000000,
+			"owned_by": "moonshot"
+		}
+	]
+}`
+
 // newTestServer returns a server that responds with fixture to every
 // request and, when captured is not nil, records the request body.
 func newTestServer(t *testing.T, contentType, fixture string, captured *string) *httptest.Server {
@@ -91,6 +118,35 @@ func TestMoonshot_New(t *testing.T) {
 		require.True(t, caps.ListModels)
 		require.False(t, caps.Embedding)
 	})
+}
+
+func TestMoonshot_ListModels(t *testing.T) {
+	t.Parallel()
+
+	srv := newTestServer(t, "application/json", modelsFixture, nil)
+	provider, err := New(config.WithAPIKey("test-key"), config.WithBaseURL(srv.URL+"/v1"))
+	require.NoError(t, err)
+
+	resp, err := provider.ListModels(context.Background())
+	require.NoError(t, err)
+	require.Len(t, resp.Data, 2)
+
+	extended := resp.Data[0]
+	require.Equal(t, "moonshot-mock-dolor", extended.ID)
+	require.Equal(t, int64(1048576), extended.ContextWindow)
+	require.Equal(t, providers.REASONING_EFFORT_MAX, extended.DefaultEffort)
+	require.Equal(t, []providers.ReasoningEffort{
+		providers.REASONING_EFFORT_LOW,
+		providers.REASONING_EFFORT_HIGH,
+		providers.REASONING_EFFORT_MAX,
+	}, extended.SupportEfforts)
+	require.Contains(t, string(extended.ProviderRaw), "context_tokens")
+
+	plain := resp.Data[1]
+	require.Equal(t, "moonshot-mock-amet", plain.ID)
+	require.Zero(t, plain.ContextWindow)
+	require.Empty(t, plain.DefaultEffort)
+	require.Nil(t, plain.SupportEfforts)
 }
 
 func TestMoonshot_CompletionExtensions(t *testing.T) {
