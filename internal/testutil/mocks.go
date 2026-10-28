@@ -145,6 +145,10 @@ func (m *MockProvider) Name() string {
 	return m.NameFunc()
 }
 
+func (m *MockProvider) ToolCallMiddleware() []providers.ToolCallMiddleware {
+	return nil
+}
+
 func (m *MockProvider) Completion(
 	ctx context.Context,
 	params providers.CompletionParams,

@@ -171,6 +171,11 @@ func (p *CompatibleProvider) Capabilities() providers.Capabilities {
 	return p.compatibleConfig.Capabilities
 }
 
+// ToolCallMiddleware returns no tool-call middleware.
+func (p *CompatibleProvider) ToolCallMiddleware() []providers.ToolCallMiddleware {
+	return nil
+}
+
 // Completion performs a chat completion request.
 func (p *CompatibleProvider) Completion(
 	ctx context.Context,

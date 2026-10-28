@@ -86,6 +86,10 @@ type Provider interface {
 	// ends. Cancel ctx to terminate the stream early; the error channel then
 	// receives ctx.Err().
 	CompletionStream(ctx context.Context, params CompletionParams) (<-chan ChatCompletionChunk, <-chan error)
+
+	// ToolCallMiddleware returns middleware for wrapping application tool calls.
+	// A nil or empty slice means no middleware.
+	ToolCallMiddleware() []ToolCallMiddleware
 }
 
 // ProviderData holds provider-specific metadata keyed by field name.
@@ -383,6 +387,20 @@ type ToolCall struct {
 	ID       string                  `json:"id"`
 	Type     string                  `json:"type"`
 }
+
+// ToolOption configures one tool execution.
+type ToolOption func(*ToolConfig)
+
+// ToolConfig contains metadata associated with one tool execution.
+type ToolConfig struct {
+	Metadata map[string]any
+}
+
+// ToolCallHandler handles one complete tool call.
+type ToolCallHandler func(context.Context, ToolCall, ...ToolOption) (string, error)
+
+// ToolCallMiddleware wraps a tool-call handler.
+type ToolCallMiddleware func(next ToolCallHandler) ToolCallHandler
 
 // ToolChoice represents a specific tool choice.
 type ToolChoice struct {

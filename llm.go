@@ -137,8 +137,12 @@ type (
 	FunctionCall       = providers.FunctionCall
 	ToolInfo           = providers.ToolInfo
 	ToolCall           = providers.ToolCall
+	ToolCallHandler    = providers.ToolCallHandler
+	ToolCallMiddleware = providers.ToolCallMiddleware
 	ToolChoice         = providers.ToolChoice
 	ToolChoiceFunction = providers.ToolChoiceFunction
+	ToolConfig         = providers.ToolConfig
+	ToolOption         = providers.ToolOption
 )
 
 // Response format types.

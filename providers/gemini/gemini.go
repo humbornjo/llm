@@ -157,6 +157,11 @@ func (p *Provider) Capabilities() providers.Capabilities {
 	}
 }
 
+// ToolCallMiddleware returns no tool-call middleware.
+func (p *Provider) ToolCallMiddleware() []providers.ToolCallMiddleware {
+	return nil
+}
+
 // Completion performs a chat completion request.
 func (p *Provider) Completion(
 	ctx context.Context,
