@@ -32,41 +32,46 @@ const (
 	ROLE_USER      = "user"
 )
 
-// CapabilityProvider is an optional interface for providers to report capabilities.
+// CapabilityProvider is an optional interface for providers to report
+// capabilities.
 type CapabilityProvider interface {
 	Provider
 	Capabilities() Capabilities
 }
 
-// EmbeddingProvider is an optional interface for providers that support embeddings.
+// EmbeddingProvider is an optional interface for providers that support
+// embeddings.
 type EmbeddingProvider interface {
 	Provider
 	Embedding(ctx context.Context, params EmbeddingParams) (*EmbeddingResponse, error)
 }
 
 // ModerationProvider is an optional interface for providers that support
-// content moderation. Use errors.As with *errors.UnsupportedOperationError to detect
-// providers that do not support moderation.
+// content moderation. Use errors.As with *errors.UnsupportedOperationError
+// to detect providers that do not support moderation.
 type ModerationProvider interface {
 	Provider
 	Moderation(ctx context.Context, params ModerationParams) (*ModerationResponse, error)
 }
 
-// ErrorConverter converts provider-specific SDK errors to unified error types.
-// This interface ensures all providers implement consistent error handling.
+// ErrorConverter converts provider-specific SDK errors to unified error
+// types. This interface ensures all providers implement consistent error
+// handling.
 type ErrorConverter interface {
-	// ConvertError takes a provider SDK error and returns a normalized error type
-	// from the errors package (e.g., *errors.RateLimitError, *errors.AuthenticationError).
+	// ConvertError takes a provider SDK error and returns a normalized error type from the errors package (e.g.,
+	// *errors.RateLimitError, *errors.AuthenticationError).
 	ConvertError(err error) error
 }
 
-// ModelLister is an optional interface for providers that support listing models.
+// ModelLister is an optional interface for providers that support listing
+// models.
 type ModelLister interface {
 	Provider
 	ListModels(ctx context.Context) (*ModelsResponse, error)
 }
 
-// RerankProvider is an optional interface for providers that support document reranking.
+// RerankProvider is an optional interface for providers that support
+// document reranking.
 type RerankProvider interface {
 	Provider
 	Rerank(ctx context.Context, params RerankParams) (*RerankResponse, error)
@@ -80,12 +85,14 @@ type Provider interface {
 	// Completion performs a chat completion request.
 	Completion(ctx context.Context, params CompletionParams) (*ChatCompletion, error)
 
-	// CompletionStream performs a streaming chat completion request. It
-	// returns a channel of chunks and a buffered error channel that receives
-	// at most one terminal error; both channels are closed when the stream
-	// ends. Cancel ctx to terminate the stream early; the error channel then
-	// receives ctx.Err().
+	// CompletionStream performs a streaming chat completion request. It returns a channel of chunks and a buffered error
+	// channel that receives at most one terminal error; both channels are closed when the stream ends. Cancel ctx to
+	// terminate the stream early; the error channel then receives ctx.Err().
 	CompletionStream(ctx context.Context, params CompletionParams) (<-chan ChatCompletionChunk, <-chan error)
+
+	// ToolCallMiddleware returns middleware for wrapping application tool calls. A nil or empty slice means no
+	// middleware.
+	ToolCallMiddleware() []ToolCallMiddleware
 }
 
 // ProviderData holds provider-specific metadata keyed by field name.
@@ -151,7 +158,8 @@ type ChunkDelta struct {
 	Reasoning *Reasoning `json:"reasoning,omitempty"`
 }
 
-// CompletionParams represents normalized parameters for chat completion requests.
+// CompletionParams represents normalized parameters for chat completion
+// requests.
 type CompletionParams struct {
 	Model             string          `json:"model"`
 	Messages          []Message       `json:"messages"`
@@ -201,11 +209,10 @@ type EmbeddingUsage struct {
 	TotalTokens  int `json:"total_tokens"`
 }
 
-// ModerationParams is the request payload for POST /v1/moderations.
-// Input accepts string | []string | []ContentPart.
+// ModerationParams is the request payload for POST /v1/moderations. Input
+// accepts string | []string | []ContentPart.
 type ModerationParams struct {
-	// IncludeRaw is sent as a ?include_raw=true query param; it is
-	// intentionally excluded from the JSON body.
+	// IncludeRaw is sent as a ?include_raw=true query param; it is intentionally excluded from the JSON body.
 	IncludeRaw bool   `json:"-"`
 	Input      any    `json:"input"`
 	Model      string `json:"model"`
@@ -322,26 +329,26 @@ type Message struct {
 
 // Model represents a model from the list models API.
 type Model struct {
-	// ContextWindow is the maximum input context in tokens, when the
-	// provider reports it (Anthropic, Gemini, Moonshot; zero otherwise).
+	// ContextWindow is the maximum input context in tokens, when the provider reports it (Anthropic, Gemini, Moonshot;
+	// zero otherwise).
 	ContextWindow int64 `json:"context_window,omitempty"`
 	Created       int64 `json:"created"`
 	// DefaultEffort is the model's default reasoning effort, when reported.
 	DefaultEffort ReasoningEffort `json:"default_effort,omitempty"`
 	ID            string          `json:"id"`
-	// InputTypes lists the content part types the model accepts as input,
-	// when the provider reports them (from input_modalities).
+	// InputTypes lists the content part types the model accepts as input, when the provider reports them (from
+	// input_modalities).
 	InputTypes []ContentPartType `json:"input_types,omitempty"`
 	Object     string            `json:"object"`
-	// OutputTypes lists the content part types the model can produce, when
-	// the provider reports them (from output_modalities).
+	// OutputTypes lists the content part types the model can produce, when the provider reports them (from
+	// output_modalities).
 	OutputTypes []ContentPartType `json:"output_types,omitempty"`
 	OwnedBy     string            `json:"owned_by"`
-	// ProviderRaw holds the unmodified provider model payload, for
-	// providers that expose fields beyond the normalized ones.
+	// ProviderRaw holds the unmodified provider model payload, for providers that expose fields beyond the normalized
+	// ones.
 	ProviderRaw json.RawMessage `json:"provider_raw,omitempty"`
-	// SupportEfforts lists the reasoning efforts the model accepts, when
-	// reported. Values pass through as the provider reports them.
+	// SupportEfforts lists the reasoning efforts the model accepts, when reported. Values pass through as the provider
+	// reports them.
 	SupportEfforts []ReasoningEffort `json:"support_efforts,omitempty"`
 }
 
@@ -375,14 +382,27 @@ type ToolInfo struct {
 
 // ToolCall represents a tool call made by the assistant.
 type ToolCall struct {
-	// Extra holds provider-specific metadata for round-tripping across
-	// multi-turn conversations. Keyed by provider name (e.g. "gemini").
-	// Excluded from JSON; callers preserve this through their own storage.
+	// Extra holds provider-specific metadata for round-tripping across multi-turn conversations. Keyed by provider name
+	// (e.g. "gemini"). Excluded from JSON; callers preserve this through their own storage.
 	Extra    map[string]ProviderData `json:"-"`
 	Function FunctionCall            `json:"function"`
 	ID       string                  `json:"id"`
 	Type     string                  `json:"type"`
 }
+
+// ToolOption configures one tool execution.
+type ToolOption func(*ToolConfig)
+
+// ToolConfig contains metadata associated with one tool execution.
+type ToolConfig struct {
+	Metadata map[string]any
+}
+
+// ToolCallHandler handles one complete tool call.
+type ToolCallHandler func(context.Context, ToolCall, ...ToolOption) (string, error)
+
+// ToolCallMiddleware wraps a tool-call handler.
+type ToolCallMiddleware func(next ToolCallHandler) ToolCallHandler
 
 // ToolChoice represents a specific tool choice.
 type ToolChoice struct {
@@ -523,9 +543,8 @@ type BatchResultError struct {
 	Message string `json:"message"`
 }
 
-// BatchProvider is an optional interface for providers that support
-// batch operations. Use a type assertion to check if a provider
-// supports batch:
+// BatchProvider is an optional interface for providers that support batch
+// operations. Use a type assertion to check if a provider supports batch:
 //
 //	if bp, ok := provider.(BatchProvider); ok {
 //	    batch, err := bp.CreateBatch(ctx, params)

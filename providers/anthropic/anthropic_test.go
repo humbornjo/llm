@@ -1489,8 +1489,7 @@ func TestAnthropic_ConvertParamsResponseFormat(t *testing.T) {
 		result, err := p.convertParams(params)
 		require.NoError(t, err)
 		require.Equal(t, schema, result.OutputConfig.Format.Schema)
-		// JSONOutputFormatParam only has Schema and Type fields;
-		// Name, Description, and Strict have no destination.
+		// JSONOutputFormatParam only has Schema and Type fields; Name, Description, and Strict have no destination.
 		require.Equal(t, anthropic.JSONOutputFormatParam{Schema: schema}, result.OutputConfig.Format)
 	})
 
@@ -1513,8 +1512,9 @@ func TestAnthropic_ConvertParamsResponseFormat(t *testing.T) {
 	})
 }
 
-// newTestAPIError creates an Anthropic API error for testing.
-// Note: The raw JSON field is unexported, so we can only test status code based conversion.
+// newTestAPIError creates an Anthropic API error for testing. Note: The
+// raw JSON field is unexported, so we can only test status code based
+// conversion.
 func newTestAPIError(t *testing.T, statusCode int) *anthropic.Error {
 	t.Helper()
 

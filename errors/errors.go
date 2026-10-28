@@ -37,8 +37,8 @@ var (
 	ErrUnsupported         = stderrors.New("operation not supported by provider")
 )
 
-// BaseError is the base error type for all llm errors.
-// It wraps the original error and includes provider context.
+// BaseError is the base error type for all llm errors. It wraps the
+// original error and includes provider context.
 type BaseError struct {
 	// Code is a short error code (e.g., "rate_limit", "auth_error").
 	Code string
@@ -115,12 +115,14 @@ type InvalidRequestError struct {
 	BaseError
 }
 
-// ContextLengthError is returned when the context exceeds the model's limit.
+// ContextLengthError is returned when the context exceeds the model's
+// limit.
 type ContextLengthError struct {
 	BaseError
 }
 
-// ContentFilterError is returned when content is blocked by safety filters.
+// ContentFilterError is returned when content is blocked by safety
+// filters.
 type ContentFilterError struct {
 	BaseError
 }
@@ -153,13 +155,14 @@ type UnsupportedParamError struct {
 	Param string // The unsupported parameter name
 }
 
-// InsufficientFundsError is returned when the account has insufficient funds (HTTP 402).
+// InsufficientFundsError is returned when the account has insufficient
+// funds (HTTP 402).
 type InsufficientFundsError struct {
 	BaseError
 }
 
-// UnsupportedOperationError indicates a provider does not support a given operation
-// (e.g. moderation). Use errors.As to detect:
+// UnsupportedOperationError indicates a provider does not support a given
+// operation (e.g. moderation). Use errors.As to detect:
 //
 //	var unsup *errors.UnsupportedOperationError
 //	if errors.As(err, &unsup) {
@@ -169,8 +172,7 @@ type InsufficientFundsError struct {
 // Also matches errors.Is(err, ErrUnsupported).
 type UnsupportedOperationError struct {
 	BaseError
-	// Operation names the unsupported capability (e.g. "moderation",
-	// "multimodal_moderation").
+	// Operation names the unsupported capability (e.g. "moderation", "multimodal_moderation").
 	Operation string
 }
 
@@ -311,8 +313,8 @@ func NewInsufficientFundsError(provider string, err error) *InsufficientFundsErr
 	}
 }
 
-// NewUnsupportedOperationError creates a new UnsupportedOperationError for the given provider
-// and operation (e.g. "moderation").
+// NewUnsupportedOperationError creates a new UnsupportedOperationError for
+// the given provider and operation (e.g. "moderation").
 func NewUnsupportedOperationError(provider, operation string, err error) *UnsupportedOperationError {
 	return &UnsupportedOperationError{
 		BaseError: New(CODE_UNSUPPORTED, provider, err, ErrUnsupported),

@@ -18,15 +18,8 @@ type Tool interface {
 	ExecuteStream(context.Context, string, ...ToolOption) iter.Seq2[string, error]
 }
 
-// ToolOption configures one tool execution.
-type ToolOption func(*ToolConfig)
-
-// ToolConfig contains metadata associated with one tool execution.
-type ToolConfig struct {
-	Metadata map[string]any
-}
-
-// WithToolMetadata attaches protocol-specific metadata to a tool execution.
+// WithToolMetadata attaches protocol-specific metadata to a tool
+// execution.
 func WithToolMetadata(metadata map[string]any) ToolOption {
 	return func(config *ToolConfig) {
 		config.Metadata = metadata

@@ -1,5 +1,5 @@
-// Package openai provides an OpenAI provider implementation for llm.
-// It also exports a base provider for other OpenAI-compatible services.
+// Package openai provides an OpenAI provider implementation for llm. It
+// also exports a base provider for other OpenAI-compatible services.
 package openai
 
 import (
@@ -44,8 +44,8 @@ const (
 	_RESPONSE_FORMAT_JSON_SCHEMA = "json_schema"
 )
 
-// CompatibleConfig contains the configuration for an OpenAI-compatible provider.
-// Fields are ordered alphabetically.
+// CompatibleConfig contains the configuration for an OpenAI-compatible
+// provider. Fields are ordered alphabetically.
 type CompatibleConfig struct {
 	// APIKeyEnvVar is the environment variable for the API key.
 	APIKeyEnvVar string
@@ -56,24 +56,21 @@ type CompatibleConfig struct {
 	// Capabilities describes what the provider supports.
 	Capabilities providers.Capabilities
 
-	// ChatCompletionChunkTransform is the streaming counterpart of
-	// ChatCompletionResponseTransform, applied to each chunk after
-	// conversion. Nil means no transformation.
+	// ChatCompletionChunkTransform is the streaming counterpart of ChatCompletionResponseTransform, applied to each chunk
+	// after conversion. Nil means no transformation.
 	ChatCompletionChunkTransform func(*openai.ChatCompletionChunk, *providers.ChatCompletionChunk)
 
-	// ChatCompletionRequestTransform is an optional function that modifies the chat
-	// completion request after convertParams() builds it and before it is serialized
-	// to the wire. Providers that are not fully OpenAI-compatible use this to adjust
-	// wire-level fields (e.g. swapping max_completion_tokens back to max_tokens).
-	// The pointer refers to a locally-constructed value owned by the caller; the
-	// function must not retain it beyond the call. Nil means no transformation.
+	// ChatCompletionRequestTransform is an optional function that modifies the chat completion request after
+	// convertParams() builds it and before it is serialized to the wire. Providers that are not fully OpenAI-compatible
+	// use this to adjust wire-level fields (e.g. swapping max_completion_tokens back to max_tokens). The pointer refers
+	// to a locally-constructed value owned by the caller; the function must not retain it beyond the call. Nil means no
+	// transformation.
 	ChatCompletionRequestTransform func(*openai.ChatCompletionNewParams)
 
-	// ChatCompletionResponseTransform is an optional function that maps provider
-	// response fields beyond the OpenAI spec (e.g. Kimi's reasoning_content)
-	// into the normalized completion after convertResponse() builds it. The
-	// pointers refer to locally-constructed values owned by the caller; the
-	// function must not retain them beyond the call. Nil means no transformation.
+	// ChatCompletionResponseTransform is an optional function that maps provider response fields beyond the OpenAI spec
+	// (e.g. Kimi's reasoning_content) into the normalized completion after convertResponse() builds it. The pointers
+	// refer to locally-constructed values owned by the caller; the function must not retain them beyond the call. Nil
+	// means no transformation.
 	ChatCompletionResponseTransform func(*openai.ChatCompletion, *providers.ChatCompletion)
 
 	// DefaultAPIKey is used when RequireAPIKey is false (e.g., for local servers).
@@ -88,10 +85,9 @@ type CompatibleConfig struct {
 	// RequireAPIKey indicates whether an API key is required.
 	RequireAPIKey bool
 
-	// RequireBaseURL indicates whether a base URL must be resolvable from
-	// WithBaseURL, BaseURLEnvVar, or DefaultBaseURL. When true, NewCompatible
-	// returns an error if none of those yield a value. Used by providers that
-	// have no sensible default endpoint (e.g. gateway).
+	// RequireBaseURL indicates whether a base URL must be resolvable from WithBaseURL, BaseURLEnvVar, or DefaultBaseURL.
+	// When true, NewCompatible returns an error if none of those yield a value. Used by providers that have no sensible
+	// default endpoint (e.g. gateway).
 	RequireBaseURL bool
 }
 
@@ -104,8 +100,9 @@ var (
 	_ providers.Provider           = (*CompatibleProvider)(nil)
 )
 
-// CompatibleProvider implements the providers.Provider interface for OpenAI-compatible APIs.
-// It can be embedded by other providers that use OpenAI-compatible endpoints.
+// CompatibleProvider implements the providers.Provider interface for
+// OpenAI-compatible APIs. It can be embedded by other providers that use
+// OpenAI-compatible endpoints.
 type CompatibleProvider struct {
 	compatibleConfig CompatibleConfig
 	client           openai.Client
@@ -169,6 +166,11 @@ func NewCompatible(compatCfg CompatibleConfig, opts ...config.Option) (*Compatib
 // Capabilities returns the provider's capabilities.
 func (p *CompatibleProvider) Capabilities() providers.Capabilities {
 	return p.compatibleConfig.Capabilities
+}
+
+// ToolCallMiddleware returns no tool-call middleware.
+func (p *CompatibleProvider) ToolCallMiddleware() []providers.ToolCallMiddleware {
+	return nil
 }
 
 // Completion performs a chat completion request.
@@ -237,10 +239,8 @@ func (p *CompatibleProvider) CompletionStream(ctx context.Context, params provid
 			select {
 			case chunks <- converted:
 			case <-ctx.Done():
-				// Caller cancelled mid-stream; surface ctx.Err() so the
-				// consumer can tell a cancelled stream apart from one
-				// that completed cleanly, rather than seeing a bare
-				// close on the error channel.
+				// Caller cancelled mid-stream; surface ctx.Err() so the consumer can tell a cancelled stream apart from one
+				// that completed cleanly, rather than seeing a bare close on the error channel.
 				errs <- ctx.Err()
 				return
 			}
@@ -271,9 +271,8 @@ func (p *CompatibleProvider) ConvertError(err error) error {
 		return convertAPIError(name, apiErr, err)
 	}
 
-	// Network-level errors are wrapped as provider errors.
-	// Note: We check for "connection refused" string as a fallback since
-	// Go's net package doesn't expose typed errors for all network conditions.
+	// Network-level errors are wrapped as provider errors. Note: We check for "connection refused" string as a fallback
+	// since Go's net package doesn't expose typed errors for all network conditions.
 	return errors.NewProviderError(name, err)
 }
 
@@ -427,8 +426,7 @@ func convertAssistantMessage(msg providers.Message) (openai.ChatCompletionMessag
 		assistant := &openai.ChatCompletionAssistantMessageParam{
 			ToolCalls: toolCalls,
 		}
-		// Beside tool calls the content field may be omitted, and strict
-		// providers reject an explicit empty string.
+		// Beside tool calls the content field may be omitted, and strict providers reject an explicit empty string.
 		if text != "" {
 			assistant.Content.OfString = openai.String(text)
 		}
@@ -440,11 +438,10 @@ func convertAssistantMessage(msg providers.Message) (openai.ChatCompletionMessag
 }
 
 // contentText reduces message content to plain text for the chat wire:
-// scalar content is returned as-is, and parts-backed content
-// concatenates its text parts. System, tool, and assistant messages
-// carry only text on the wire, so any other part kind is an error
-// rather than silently dropped. ContentString alone would read
-// parts-backed content as empty.
+// scalar content is returned as-is, and parts-backed content concatenates
+// its text parts. System, tool, and assistant messages carry only text on
+// the wire, so any other part kind is an error rather than silently
+// dropped. ContentString alone would read parts-backed content as empty.
 func contentText(msg providers.Message) (string, error) {
 	if !msg.IsMultiModal() {
 		return msg.ContentString(), nil
@@ -513,7 +510,8 @@ func convertChunk(chunk *openai.ChatCompletionChunk) providers.ChatCompletionChu
 	return result
 }
 
-// convertEmbeddingParams converts provider embedding params to OpenAI format.
+// convertEmbeddingParams converts provider embedding params to OpenAI
+// format.
 func convertEmbeddingParams(params providers.EmbeddingParams) openai.EmbeddingNewParams {
 	req := openai.EmbeddingNewParams{
 		Model: openai.EmbeddingModel(params.Model),
@@ -550,7 +548,8 @@ func convertEmbeddingParams(params providers.EmbeddingParams) openai.EmbeddingNe
 	return req
 }
 
-// convertEmbeddingResponse converts an OpenAI embedding response to provider format.
+// convertEmbeddingResponse converts an OpenAI embedding response to
+// provider format.
 func convertEmbeddingResponse(resp *openai.CreateEmbeddingResponse) *providers.EmbeddingResponse {
 	data := make([]providers.EmbeddingData, 0, len(resp.Data))
 	for _, d := range resp.Data {
@@ -616,7 +615,8 @@ func convertMessages(messages []providers.Message) ([]openai.ChatCompletionMessa
 	return result, nil
 }
 
-// convertParams converts providers.CompletionParams to OpenAI request parameters.
+// convertParams converts providers.CompletionParams to OpenAI request
+// parameters.
 func convertParams(params providers.CompletionParams) openai.ChatCompletionNewParams {
 	messages, _ := convertMessages(params.Messages) // Error already checked in validateCompletionParams
 
@@ -748,7 +748,8 @@ func convertUsage(usage openai.CompletionUsage) *providers.Usage {
 	return result
 }
 
-// convertResponseFormat converts provider response format to OpenAI format.
+// convertResponseFormat converts provider response format to OpenAI
+// format.
 func convertResponseFormat(format *providers.ResponseFormat) openai.ChatCompletionNewParamsResponseFormatUnion {
 	if format == nil {
 		return openai.ChatCompletionNewParamsResponseFormatUnion{}
@@ -780,7 +781,8 @@ func convertResponseFormat(format *providers.ResponseFormat) openai.ChatCompleti
 	}
 }
 
-// convertResponseMessage converts an OpenAI response message to provider format.
+// convertResponseMessage converts an OpenAI response message to provider
+// format.
 func convertResponseMessage(msg openai.ChatCompletionMessage) providers.Message {
 	result := providers.Message{
 		Role:    string(msg.Role),
@@ -897,9 +899,8 @@ func convertUserMessage(msg providers.Message) (openai.ChatCompletionMessagePara
 					"video content part requires video_url",
 				)
 			}
-			// The OpenAI spec has no video part; video_url is a provider
-			// extension (e.g. Kimi), so emit the raw wire form through
-			// the SDK's union override.
+			// The OpenAI spec has no video part; video_url is a provider extension (e.g. Kimi), so emit the raw wire form
+			// through the SDK's union override.
 			raw, err := json.Marshal(value)
 			if err != nil {
 				return openai.ChatCompletionMessageParamUnion{}, err
@@ -924,7 +925,8 @@ func resolveAPIKey(cfg *config.Config, compatCfg CompatibleConfig) string {
 	return cfg.APIKey
 }
 
-// validateCompatibleConfig validates the compatible provider configuration.
+// validateCompatibleConfig validates the compatible provider
+// configuration.
 func validateCompatibleConfig(cfg CompatibleConfig) error {
 	if cfg.Name == "" {
 		return fmt.Errorf("provider name is required")

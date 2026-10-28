@@ -24,8 +24,8 @@ type Config struct {
 	// Timeout is the request timeout. If zero, a default timeout is used.
 	Timeout time.Duration
 
-	// httpClient is a custom HTTP client. Access via HTTPClient() method which
-	// handles lazy creation with the configured Timeout if not explicitly set on the client.
+	// httpClient is a custom HTTP client. Access via HTTPClient() method which handles lazy creation with the configured
+	// Timeout if not explicitly set on the client.
 	httpClient     *http.Client
 	httpClientOnce sync.Once
 }
@@ -33,8 +33,8 @@ type Config struct {
 // Option is a function that modifies the Config.
 type Option func(*Config) error
 
-// New creates a Config with the given options applied.
-// Note: HTTPClient is not created here by default; it is lazily created via the HTTPClient()
+// New creates a Config with the given options applied. Note: HTTPClient is
+// not created here by default; it is lazily created via the HTTPClient()
 // method using the configured Timeout when first accessed.
 func New(opts ...Option) (*Config, error) {
 	// Configure default values.
@@ -90,8 +90,8 @@ func WithBaseURL(baseURL string) Option {
 	}
 }
 
-// WithExtra sets extra provider-specific configuration.
-// Whitespace is automatically trimmed from the key.
+// WithExtra sets extra provider-specific configuration. Whitespace is
+// automatically trimmed from the key.
 func WithExtra(key string, value any) Option {
 	return func(c *Config) error {
 		key = strings.TrimSpace(key)
@@ -108,10 +108,11 @@ func WithExtra(key string, value any) Option {
 	}
 }
 
-// WithHTTPClient sets a custom HTTP client.
-// When a custom client is provided, the Timeout field is ignored for HTTP requests
-// since the custom client manages its own timeout configuration.
-// If both WithHTTPClient and WithTimeout are used, the custom client takes precedence.
+// WithHTTPClient sets a custom HTTP client. When a custom client is
+// provided, the Timeout field is ignored for HTTP requests since the
+// custom client manages its own timeout configuration. If both
+// WithHTTPClient and WithTimeout are used, the custom client takes
+// precedence.
 func WithHTTPClient(client *http.Client) Option {
 	return func(c *Config) error {
 		if client == nil {
@@ -145,11 +146,13 @@ func (c *Config) ExtraValue(key string) (any, bool) {
 	return v, ok
 }
 
-// HTTPClient returns the configured HTTP client, or lazily creates one using
-// the configured Timeout if no custom client was provided via WithHTTPClient.
-// The lazily-created client is cached and reused on subsequent calls.
+// HTTPClient returns the configured HTTP client, or lazily creates one
+// using the configured Timeout if no custom client was provided via
+// WithHTTPClient. The lazily-created client is cached and reused on
+// subsequent calls.
 //
-// Note: If a custom client was provided via WithHTTPClient, that pointer is returned.
+// Note: If a custom client was provided via WithHTTPClient, that pointer
+// is returned.
 func (c *Config) HTTPClient() *http.Client {
 	c.httpClientOnce.Do(func() {
 		if c.httpClient == nil {
@@ -160,8 +163,8 @@ func (c *Config) HTTPClient() *http.Client {
 	return c.httpClient
 }
 
-// ResolveAPIKey returns the API key from config if set, otherwise falls back
-// to the specified environment variable.
+// ResolveAPIKey returns the API key from config if set, otherwise falls
+// back to the specified environment variable.
 func (c *Config) ResolveAPIKey(envVar string) string {
 	if c.APIKey != "" {
 		return c.APIKey
@@ -171,7 +174,8 @@ func (c *Config) ResolveAPIKey(envVar string) string {
 }
 
 // ResolveEnv returns the value of the specified environment variable,
-// trimming whitespace. Returns empty string if the variable is not set or empty.
+// trimming whitespace. Returns empty string if the variable is not set or
+// empty.
 func (c *Config) ResolveEnv(envVar string) string {
 	if envVar == "" {
 		return ""
@@ -179,8 +183,9 @@ func (c *Config) ResolveEnv(envVar string) string {
 	return strings.TrimSpace(os.Getenv(envVar))
 }
 
-// ResolveBaseURL resolves the base URL from config, environment variable, or default value.
-// It validates that the resolved URL has a scheme and host.
+// ResolveBaseURL resolves the base URL from config, environment variable,
+// or default value. It validates that the resolved URL has a scheme and
+// host.
 func (c *Config) ResolveBaseURL(envVar, defaultVal string) (string, error) {
 	baseURL := c.BaseURL
 	if baseURL == "" {

@@ -1,6 +1,7 @@
 // Example: Multi-provider usage
 //
-// This example demonstrates how to use multiple providers with the same code.
+// This example demonstrates how to use multiple providers with the same
+// code.
 //
 // Run with:
 //

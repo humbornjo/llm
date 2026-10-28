@@ -87,8 +87,8 @@ type Provider struct {
 	config *config.Config
 }
 
-// streamState tracks accumulated state during streaming.
-// Note: Only accessed from a single goroutine, so no synchronization needed.
+// streamState tracks accumulated state during streaming. Note: Only
+// accessed from a single goroutine, so no synchronization needed.
 type streamState struct {
 	messageID      string
 	model          string
@@ -150,6 +150,11 @@ func (p *Provider) Capabilities() providers.Capabilities {
 	}
 }
 
+// ToolCallMiddleware returns no tool-call middleware.
+func (p *Provider) ToolCallMiddleware() []providers.ToolCallMiddleware {
+	return nil
+}
+
 // Completion performs a chat completion request.
 func (p *Provider) Completion(
 	ctx context.Context,
@@ -168,7 +173,8 @@ func (p *Provider) Completion(
 	return convertResponse(resp), nil
 }
 
-// convertParams converts providers.CompletionParams to Anthropic request parameters.
+// convertParams converts providers.CompletionParams to Anthropic request
+// parameters.
 func (p *Provider) convertParams(params providers.CompletionParams) (anthropic.MessageNewParams, error) {
 	messages, system := convertMessages(params.Messages)
 
@@ -319,7 +325,8 @@ func (s *streamState) chunk(delta providers.ChunkDelta) providers.ChatCompletion
 	}
 }
 
-// handleContentBlockDelta processes a content_block_delta event and returns a chunk if applicable.
+// handleContentBlockDelta processes a content_block_delta event and
+// returns a chunk if applicable.
 func (s *streamState) handleContentBlockDelta(event anthropic.ContentBlockDeltaEvent) *providers.ChatCompletionChunk {
 	switch event.Delta.Type {
 	case _DELTA_TYPE_TEXT:
@@ -352,7 +359,8 @@ func (s *streamState) handleContentBlockStart(event anthropic.ContentBlockStartE
 	}
 }
 
-// handleInputJSONDelta processes a tool input JSON delta and returns a chunk if applicable.
+// handleInputJSONDelta processes a tool input JSON delta and returns a
+// chunk if applicable.
 func (s *streamState) handleInputJSONDelta(partialJSON string) *providers.ChatCompletionChunk {
 	if s.currentToolIdx < 0 || s.currentToolIdx >= len(s.toolCalls) {
 		return nil
@@ -365,7 +373,8 @@ func (s *streamState) handleInputJSONDelta(partialJSON string) *providers.ChatCo
 	return &chunk
 }
 
-// handleMessageDelta processes a message_delta event and returns the final chunk.
+// handleMessageDelta processes a message_delta event and returns the final
+// chunk.
 func (s *streamState) handleMessageDelta(event anthropic.MessageDeltaEvent) providers.ChatCompletionChunk {
 	finishReason := convertStopReason(string(event.Delta.StopReason))
 	chunk := s.chunk(providers.ChunkDelta{})
@@ -382,7 +391,8 @@ func (s *streamState) handleMessageDelta(event anthropic.MessageDeltaEvent) prov
 	return chunk
 }
 
-// handleMessageStart processes a message_start event and returns the initial chunk.
+// handleMessageStart processes a message_start event and returns the
+// initial chunk.
 func (s *streamState) handleMessageStart(event anthropic.MessageStartEvent) providers.ChatCompletionChunk {
 	s.messageID = event.Message.ID
 	s.model = string(event.Message.Model)
@@ -409,7 +419,8 @@ func (s *streamState) handleTextDelta(text string) *providers.ChatCompletionChun
 	return &chunk
 }
 
-// applyThinking configures thinking/reasoning on the request if applicable.
+// applyThinking configures thinking/reasoning on the request if
+// applicable.
 func applyThinking(req *anthropic.MessageNewParams, effort providers.ReasoningEffort, maxTokens int64) {
 	if effort == "" || effort == providers.REASONING_EFFORT_NONE {
 		return
@@ -429,27 +440,29 @@ func applyThinking(req *anthropic.MessageNewParams, effort providers.ReasoningEf
 	}
 }
 
-// applyResponseFormat configures structured output on the request if applicable.
+// applyResponseFormat configures structured output on the request if
+// applicable.
 func applyResponseFormat(req *anthropic.MessageNewParams, format *providers.ResponseFormat) {
 	if format == nil || format.JSONSchema == nil {
 		return
 	}
 	switch format.Type {
 	case _RESPONSE_FORMAT_JSON_SCHEMA:
-		// JSONOutputFormatParam only carries Schema and Type; Name, Description, and Strict
-		// from providers.JSONSchema are not supported by the Anthropic API.
+		// JSONOutputFormatParam only carries Schema and Type; Name, Description, and Strict from providers.JSONSchema are
+		// not supported by the Anthropic API.
 		req.OutputConfig = anthropic.OutputConfigParam{
 			Format: anthropic.JSONOutputFormatParam{
 				Schema: format.JSONSchema.Schema,
 			},
 		}
 	case _RESPONSE_FORMAT_JSON_OBJECT:
-		// Anthropic requires a schema for structured output; json_object without a schema
-		// is not supported. No-op to preserve forward compatibility.
+		// Anthropic requires a schema for structured output; json_object without a schema is not supported. No-op to
+		// preserve forward compatibility.
 	}
 }
 
-// convertAssistantMessage converts an assistant message to Anthropic format.
+// convertAssistantMessage converts an assistant message to Anthropic
+// format.
 func convertAssistantMessage(msg providers.Message) *anthropic.MessageParam {
 	if len(msg.ToolCalls) == 0 {
 		m := anthropic.NewAssistantMessage(anthropic.NewTextBlock(msg.ContentString()))
@@ -505,8 +518,8 @@ func convertMessage(msg providers.Message) *anthropic.MessageParam {
 	}
 }
 
-// convertMessages converts providers messages to Anthropic format.
-// Returns the messages and the combined system message.
+// convertMessages converts providers messages to Anthropic format. Returns
+// the messages and the combined system message.
 func convertMessages(messages []providers.Message) ([]anthropic.MessageParam, string) {
 	result := make([]anthropic.MessageParam, 0, len(messages))
 	var systemParts []string
@@ -587,7 +600,8 @@ func convertResponse(resp *anthropic.Message) *providers.ChatCompletion {
 	}
 }
 
-// convertStopReason converts Anthropic stop reason to OpenAI finish reason.
+// convertStopReason converts Anthropic stop reason to OpenAI finish
+// reason.
 func convertStopReason(reason string) string {
 	switch reason {
 	case _STOP_REASON_END_TURN:
@@ -635,7 +649,8 @@ func convertTool(tool providers.ToolInfo) (anthropic.ToolUnionParam, error) {
 	return buildToolParam(tool, inputSchema), nil
 }
 
-// buildToolParam constructs the final ToolUnionParam from tool metadata and schema.
+// buildToolParam constructs the final ToolUnionParam from tool metadata
+// and schema.
 func buildToolParam(tool providers.ToolInfo, schema anthropic.ToolInputSchemaParam) anthropic.ToolUnionParam {
 	return anthropic.ToolUnionParam{
 		OfTool: &anthropic.ToolParam{
@@ -733,9 +748,9 @@ func convertUserMessage(msg providers.Message) *anthropic.MessageParam {
 	return &m
 }
 
-// sendChunk delivers a chunk on the chunks channel. It returns false if the
-// context was canceled while waiting, meaning the consumer has moved on and
-// the stream should terminate.
+// sendChunk delivers a chunk on the chunks channel. It returns false if
+// the context was canceled while waiting, meaning the consumer has moved
+// on and the stream should terminate.
 func sendChunk(
 	ctx context.Context,
 	chunks chan<- providers.ChatCompletionChunk,
@@ -750,7 +765,8 @@ func sendChunk(
 }
 
 // thinkingBudget returns the token budget for the given reasoning effort.
-// Returns the budget and true if the effort level is supported, or 0 and false otherwise.
+// Returns the budget and true if the effort level is supported, or 0 and
+// false otherwise.
 func thinkingBudget(effort providers.ReasoningEffort) (int64, bool) {
 	switch effort {
 	case providers.REASONING_EFFORT_LOW:
@@ -764,8 +780,8 @@ func thinkingBudget(effort providers.ReasoningEffort) (int64, bool) {
 	}
 }
 
-// toStringSlice converts a value to []string.
-// Accepts []string (returned as-is) or []any (each element must be string).
+// toStringSlice converts a value to []string. Accepts []string (returned
+// as-is) or []any (each element must be string).
 func toStringSlice(v any) ([]string, error) {
 	switch typed := v.(type) {
 	case []string:
@@ -792,8 +808,8 @@ func (p *Provider) ConvertError(err error) error {
 		return nil
 	}
 
-	// Extract the Anthropic API error type from the error chain.
-	// If it's not an API error (e.g., network error), wrap as generic provider error.
+	// Extract the Anthropic API error type from the error chain. If it's not an API error (e.g., network error), wrap as
+	// generic provider error.
 	var apiErr *anthropic.Error
 	if !stderrors.As(err, &apiErr) {
 		return errors.NewProviderError(_PROVIDER_NAME, err)
@@ -808,8 +824,7 @@ func (p *Provider) ConvertError(err error) error {
 	case 404:
 		return errors.NewModelNotFoundError(_PROVIDER_NAME, err)
 	case 400:
-		// Anthropic uses 400 for various client errors.
-		// Check the raw JSON for context length indicators.
+		// Anthropic uses 400 for various client errors. Check the raw JSON for context length indicators.
 		rawJSON := apiErr.RawJSON()
 		if strings.Contains(rawJSON, _ERROR_PATTERN_CONTEXT_LENGTH) || strings.Contains(rawJSON, _ERROR_PATTERN_TOKEN) {
 			return errors.NewContextLengthError(_PROVIDER_NAME, err)

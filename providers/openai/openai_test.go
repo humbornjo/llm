@@ -401,8 +401,7 @@ func TestOpenAI_ConvertResponse(t *testing.T) {
 
 	t.Run("converts basic response", func(t *testing.T) {
 		t.Parallel()
-		// We can't easily test this without mocking the OpenAI SDK response.
-		// This would be tested in integration tests.
+		// We can't easily test this without mocking the OpenAI SDK response. This would be tested in integration tests.
 	})
 }
 

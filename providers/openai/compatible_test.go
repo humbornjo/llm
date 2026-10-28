@@ -727,8 +727,8 @@ func TestOpenAI_StreamingContextCancellation(t *testing.T) {
 		require.ErrorIs(t, <-errs, context.DeadlineExceeded)
 	})
 
-	// Regression for #85: context cancellation must be yielded explicitly so
-	// consumers can distinguish it from a clean end of iteration.
+	// Regression for #85: context cancellation must be yielded explicitly so consumers can distinguish it from a clean
+	// end of iteration.
 	t.Run("surfaces ctx.Err on cancellation", func(t *testing.T) {
 		t.Parallel()
 
@@ -850,8 +850,7 @@ data: {"id":"chunk-2","object":"chat.completion.chunk","model":"test-model","cho
 		ctx, cancel := context.WithCancel(t.Context())
 		chunks, errs := provider.CompletionStream(ctx, params)
 
-		// Read one chunk, then stop consuming. The producer blocks sending
-		// the second chunk until cancellation releases it.
+		// Read one chunk, then stop consuming. The producer blocks sending the second chunk until cancellation releases it.
 		first, ok := <-chunks
 		require.True(t, ok)
 		require.Equal(t, "chunk-1", first.ID)

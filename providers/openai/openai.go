@@ -23,8 +23,8 @@ var (
 	_ providers.Provider           = (*Provider)(nil)
 )
 
-// Provider implements the providers.Provider interface for OpenAI.
-// It embeds CompatibleProvider which handles the OpenAI SDK integration.
+// Provider implements the providers.Provider interface for OpenAI. It
+// embeds CompatibleProvider which handles the OpenAI SDK integration.
 type Provider struct {
 	*CompatibleProvider
 }
@@ -59,7 +59,8 @@ func New(opts ...config.Option) (*Provider, error) {
 }
 
 // ListModels returns available models, interpreting provider extension
-// fields (context window, supported efforts) when the endpoint reports them.
+// fields (context window, supported efforts) when the endpoint reports
+// them.
 func (p *Provider) ListModels(ctx context.Context) (*providers.ModelsResponse, error) {
 	resp, err := p.CompatibleProvider.ListModels(ctx)
 	if err != nil {

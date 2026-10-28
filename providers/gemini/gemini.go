@@ -27,8 +27,8 @@ const (
 	_PROVIDER_NAME      = "gemini"
 )
 
-// Default thinking budgets for reasoning effort levels.
-// These match the Python any-llm library.
+// Default thinking budgets for reasoning effort levels. These match the
+// Python any-llm library.
 const (
 	_THINKING_BUDGET_HIGH   int32 = 24576
 	_THINKING_BUDGET_LOW    int32 = 1024
@@ -41,7 +41,8 @@ const (
 	_ROLE_USER  = "user"
 )
 
-// Object type constants (Gemini doesn't provide these; we set them ourselves).
+// Object type constants (Gemini doesn't provide these; we set them
+// ourselves).
 const (
 	_OBJECT_CHAT_COMPLETION       = "chat.completion"
 	_OBJECT_CHAT_COMPLETION_CHUNK = "chat.completion.chunk"
@@ -65,19 +66,20 @@ const (
 	_ID_PREFIX_TOOL_CALL  = "call_"
 )
 
-// Extra key for round-tripping ThoughtSignature metadata in ToolCall.Extra.
+// Extra key for round-tripping ThoughtSignature metadata in
+// ToolCall.Extra.
 const _EXTRA_KEY_THOUGHT_SIGNATURE = "thought_signature"
 
 // Default MIME type for image URLs when type cannot be determined.
 const _DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
-// Bypass value for tool calls that lack a real ThoughtSignature.
-// See https://ai.google.dev/gemini-api/docs/thought-signatures#faqs
+// Bypass value for tool calls that lack a real ThoughtSignature. See
+// https://ai.google.dev/gemini-api/docs/thought-signatures#faqs
 const _THOUGHT_SIGNATURE_BYPASS = "skip_thought_signature_validator"
 
-// Error message patterns for 400 error classification.
-// The Gemini SDK doesn't expose typed errors for these conditions,
-// so we rely on message matching as a pragmatic fallback.
+// Error message patterns for 400 error classification. The Gemini SDK
+// doesn't expose typed errors for these conditions, so we rely on message
+// matching as a pragmatic fallback.
 const (
 	_ERR_MSG_CONTEXT = "context"
 	_ERR_MSG_TOKEN   = "token"
@@ -155,6 +157,11 @@ func (p *Provider) Capabilities() providers.Capabilities {
 		Embedding:  true,
 		ListModels: true,
 	}
+}
+
+// ToolCallMiddleware returns no tool-call middleware.
+func (p *Provider) ToolCallMiddleware() []providers.ToolCallMiddleware {
+	return nil
 }
 
 // Completion performs a chat completion request.
@@ -255,8 +262,8 @@ func (p *Provider) ConvertError(err error) error {
 	case 429:
 		return errors.NewRateLimitError(_PROVIDER_NAME, err)
 	case 400:
-		// The Gemini SDK doesn't expose typed errors for context length or content
-		// filter violations, so we use message matching as a pragmatic fallback.
+		// The Gemini SDK doesn't expose typed errors for context length or content filter violations, so we use message
+		// matching as a pragmatic fallback.
 		msg := strings.ToLower(apiErr.Message)
 		if strings.Contains(msg, _ERR_MSG_CONTEXT) || strings.Contains(msg, _ERR_MSG_TOKEN) {
 			return errors.NewContextLengthError(_PROVIDER_NAME, err)
@@ -345,7 +352,8 @@ func (p *Provider) Name() string {
 	return _PROVIDER_NAME
 }
 
-// convertParams converts providers.CompletionParams to Gemini request format.
+// convertParams converts providers.CompletionParams to Gemini request
+// format.
 func (p *Provider) convertParams(params providers.CompletionParams) ([]*genai.Content, *genai.GenerateContentConfig) {
 	contents, systemInstruction := convertMessages(params.Messages)
 
@@ -429,7 +437,8 @@ func (s *streamState) finalChunk() *providers.ChatCompletionChunk {
 	return &chunk
 }
 
-// processResponse processes a streaming response and returns chunks to emit.
+// processResponse processes a streaming response and returns chunks to
+// emit.
 func (s *streamState) processResponse(resp *genai.GenerateContentResponse) ([]providers.ChatCompletionChunk, error) {
 	var result []providers.ChatCompletionChunk
 
@@ -484,9 +493,10 @@ func (s *streamState) processResponse(resp *genai.GenerateContentResponse) ([]pr
 	return result, nil
 }
 
-// applyResponseFormat configures the response format on the config.
-// For json_schema, Gemini requires both responseMimeType application/json and
-// responseJsonSchema (see https://ai.google.dev/gemini-api/docs/structured-output).
+// applyResponseFormat configures the response format on the config. For
+// json_schema, Gemini requires both responseMimeType application/json and
+// responseJsonSchema (see
+// https://ai.google.dev/gemini-api/docs/structured-output).
 func applyResponseFormat(cfg *genai.GenerateContentConfig, format *providers.ResponseFormat) {
 	if format == nil {
 		return
@@ -535,26 +545,22 @@ func convertAssistantMessage(msg providers.Message) *genai.Content {
 
 		part := genai.NewPartFromFunctionCall(tc.Function.Name, args)
 
-		// Replay the thought signature that Gemini returned on the original turn.
-		// Thinking models (2.5+) require this on every function call part when
-		// replaying conversation history; omitting it causes a 400 error.
-		// If no real signature was captured, use the documented bypass value.
+		// Replay the thought signature that Gemini returned on the original turn. Thinking models (2.5+) require this on
+		// every function call part when replaying conversation history; omitting it causes a 400 error. If no real
+		// signature was captured, use the documented bypass value.
 		//
-		// This applies unconditionally to all models, including non-thinking
-		// ones. In testing, non-thinking models accept the field without issue.
-		// The Python any-llm library follows the same pattern, so we mirror it
-		// here. Revisit if this causes problems with specific models.
+		// This applies unconditionally to all models, including non-thinking ones. In testing, non-thinking models accept
+		// the field without issue. The Python any-llm library follows the same pattern, so we mirror it here. Revisit if
+		// this causes problems with specific models.
 		//
-		// NOTE: The Go SDK declares Part.ThoughtSignature as []byte, and Go's
-		// encoding/json automatically base64-encodes []byte fields — so the
-		// bypass reaches the API as "c2tpcF90aG91Z2h0X3NpZ25hdHVyZV92YWxpZGF0b3I="
-		// rather than the literal string. In testing the API appears to accept
-		// the base64-encoded form transparently, but this behaviour is
-		// undocumented and the wire format differs from what the docs describe.
-		// The Python SDK uses str, avoiding this entirely.
+		// NOTE: The Go SDK declares Part.ThoughtSignature as []byte, and Go's encoding/json automatically base64-encodes
+		// []byte fields — so the bypass reaches the API as "c2tpcF90aG91Z2h0X3NpZ25hdHVyZV92YWxpZGF0b3I=" rather than the
+		// literal string. In testing the API appears to accept the base64-encoded form transparently, but this behaviour is
+		// undocumented and the wire format differs from what the docs describe. The Python SDK uses str, avoiding this
+		// entirely.
 		//
-		// Upstream issue: https://github.com/googleapis/go-genai/issues/711
-		// See also: https://github.com/langchain-ai/langchain-google/issues/1570
+		// Upstream issue: https://github.com/googleapis/go-genai/issues/711 See also:
+		// https://github.com/langchain-ai/langchain-google/issues/1570
 		if sig := thoughtSignatureFromExtra(tc.Extra); sig != nil {
 			part.ThoughtSignature = sig
 		} else {
@@ -606,7 +612,8 @@ func convertFinishReason(reason genai.FinishReason) string {
 	}
 }
 
-// convertFunctionCallToToolCall converts a Gemini function call to a providers tool call.
+// convertFunctionCallToToolCall converts a Gemini function call to a
+// providers tool call.
 func convertFunctionCallToToolCall(fc *genai.FunctionCall) (providers.ToolCall, error) {
 	argsJSON := ""
 	if fc.Args != nil {
@@ -630,9 +637,9 @@ func convertFunctionCallToToolCall(fc *genai.FunctionCall) (providers.ToolCall, 
 	}, nil
 }
 
-// convertImagePart converts an image URL to Gemini part format.
-// For data URLs, it extracts the base64-encoded data and MIME type.
-// For regular URLs, it treats them as file URIs with a default MIME type.
+// convertImagePart converts an image URL to Gemini part format. For data
+// URLs, it extracts the base64-encoded data and MIME type. For regular
+// URLs, it treats them as file URIs with a default MIME type.
 func convertImagePart(img *providers.ImageURL) *genai.Part {
 	url := img.URL
 
@@ -645,8 +652,8 @@ func convertImagePart(img *providers.ImageURL) *genai.Part {
 			if err == nil {
 				return genai.NewPartFromBytes(data, mediaType)
 			}
-			// Base64 decoding failed for data URL; fall through to treat as file URI.
-			// This handles malformed data URLs gracefully.
+			// Base64 decoding failed for data URL; fall through to treat as file URI. This handles malformed data URLs
+			// gracefully.
 		}
 	}
 
@@ -658,8 +665,8 @@ func convertImagePart(img *providers.ImageURL) *genai.Part {
 	}
 }
 
-// convertMessage converts a single message to Gemini format.
-// Returns nil for unknown roles (with a warning logged).
+// convertMessage converts a single message to Gemini format. Returns nil
+// for unknown roles (with a warning logged).
 func convertMessage(msg providers.Message) *genai.Content {
 	switch msg.Role {
 	case providers.ROLE_USER:
@@ -674,8 +681,8 @@ func convertMessage(msg providers.Message) *genai.Content {
 	}
 }
 
-// convertMessages converts providers messages to Gemini format.
-// Returns the contents and the system instruction (if any).
+// convertMessages converts providers messages to Gemini format. Returns
+// the contents and the system instruction (if any).
 func convertMessages(messages []providers.Message) ([]*genai.Content, *genai.Content) {
 	var contents []*genai.Content
 	var systemParts []string
@@ -699,7 +706,8 @@ func convertMessages(messages []providers.Message) ([]*genai.Content, *genai.Con
 	return contents, systemInstruction
 }
 
-// extractResponseContent extracts content, reasoning, tool calls, and finish reason from a Gemini response.
+// extractResponseContent extracts content, reasoning, tool calls, and
+// finish reason from a Gemini response.
 func extractResponseContent(
 	resp *genai.GenerateContentResponse,
 ) (string, *providers.Reasoning, []providers.ToolCall, string, error) {
@@ -881,8 +889,8 @@ func convertToolMessage(msg providers.Message) *genai.Content {
 
 	content := msg.ContentString()
 
-	// Try to parse content as JSON first (structured tool responses).
-	// If parsing fails, wrap the raw content as {"result": content}.
+	// Try to parse content as JSON first (structured tool responses). If parsing fails, wrap the raw content as
+	// {"result": content}.
 	var response map[string]any
 	if err := json.Unmarshal([]byte(content), &response); err != nil {
 		response = map[string]any{
@@ -948,9 +956,9 @@ func generateID(prefix string) (string, error) {
 	return prefix + hex.EncodeToString(b), nil
 }
 
-// sendChunk delivers a chunk on the chunks channel. It returns false if the
-// context was canceled while waiting, meaning the consumer has moved on and
-// the stream should terminate.
+// sendChunk delivers a chunk on the chunks channel. It returns false if
+// the context was canceled while waiting, meaning the consumer has moved
+// on and the stream should terminate.
 func sendChunk(
 	ctx context.Context,
 	chunks chan<- providers.ChatCompletionChunk,
@@ -964,9 +972,10 @@ func sendChunk(
 	}
 }
 
-// setProviderExtra safely sets a key in a ToolCall's provider-specific Extra data.
-// Initialises the maps if nil, and preserves existing keys.
-// NOTE: This lives in the gemini package for now; lift to providers if other providers need it.
+// setProviderExtra safely sets a key in a ToolCall's provider-specific
+// Extra data. Initialises the maps if nil, and preserves existing keys.
+// NOTE: This lives in the gemini package for now; lift to providers if
+// other providers need it.
 func setProviderExtra(tc *providers.ToolCall, provider string, key string, value any) {
 	if tc.Extra == nil {
 		tc.Extra = make(map[string]providers.ProviderData)

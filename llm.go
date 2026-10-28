@@ -1,7 +1,8 @@
-// Package llm provides a unified interface for interacting with LLM providers.
+// Package llm provides a unified interface for interacting with LLM
+// providers.
 //
-// This package re-exports common types and configuration options from subpackages,
-// allowing most use cases to work with just two imports:
+// This package re-exports common types and configuration options from
+// subpackages, allowing most use cases to work with just two imports:
 //
 //	import (
 //	    "github.com/humbornjo/llm"
@@ -137,8 +138,12 @@ type (
 	FunctionCall       = providers.FunctionCall
 	ToolInfo           = providers.ToolInfo
 	ToolCall           = providers.ToolCall
+	ToolCallHandler    = providers.ToolCallHandler
+	ToolCallMiddleware = providers.ToolCallMiddleware
 	ToolChoice         = providers.ToolChoice
 	ToolChoiceFunction = providers.ToolChoiceFunction
+	ToolConfig         = providers.ToolConfig
+	ToolOption         = providers.ToolOption
 )
 
 // Response format types.
