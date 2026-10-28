@@ -6,7 +6,8 @@ import (
 	"github.com/humbornjo/llm/providers"
 )
 
-// MockProvider is a mock implementation of the Provider interface for testing.
+// MockProvider is a mock implementation of the Provider interface for
+// testing.
 type MockProvider struct {
 	NameFunc             func() string
 	CompletionFunc       func(ctx context.Context, params providers.CompletionParams) (*providers.ChatCompletion, error)
@@ -206,7 +207,8 @@ func MockChatCompletion(content string) *providers.ChatCompletion {
 	}
 }
 
-// MockChatCompletionWithToolCalls creates a mock ChatCompletion with tool calls.
+// MockChatCompletionWithToolCalls creates a mock ChatCompletion with tool
+// calls.
 func MockChatCompletionWithToolCalls(toolCalls []providers.ToolCall) *providers.ChatCompletion {
 	return &providers.ChatCompletion{
 		ID:     "mock-id",
@@ -231,7 +233,8 @@ func MockChatCompletionWithToolCalls(toolCalls []providers.ToolCall) *providers.
 	}
 }
 
-// MockChatCompletionWithReasoning creates a mock ChatCompletion with reasoning.
+// MockChatCompletionWithReasoning creates a mock ChatCompletion with
+// reasoning.
 func MockChatCompletionWithReasoning(content, reasoning string) *providers.ChatCompletion {
 	return &providers.ChatCompletion{
 		ID:     "mock-id",

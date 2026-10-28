@@ -12,10 +12,10 @@ import (
 	"testing"
 )
 
-// FakeCompletionServer creates an httptest server that captures the raw JSON
-// request body and returns a minimal valid OpenAI-compatible chat completion
-// response. The captured body is returned so callers can assert on the exact
-// JSON field names sent over the wire.
+// FakeCompletionServer creates an httptest server that captures the raw
+// JSON request body and returns a minimal valid OpenAI-compatible chat
+// completion response. The captured body is returned so callers can assert
+// on the exact JSON field names sent over the wire.
 //
 // The handler uses t.Errorf for error reporting, which is safe because the
 // blocking HTTP client call in the test goroutine synchronises the handler
@@ -89,10 +89,10 @@ func FakeModelsServer(t *testing.T, fixture string) (serverURL string) {
 	return srv.URL
 }
 
-// FakeStreamingServer creates an httptest server that captures the raw JSON
-// request body and returns a minimal valid OpenAI-compatible streaming (SSE)
-// response. The captured body is returned so callers can assert on the exact
-// JSON field names sent over the wire.
+// FakeStreamingServer creates an httptest server that captures the raw
+// JSON request body and returns a minimal valid OpenAI-compatible
+// streaming (SSE) response. The captured body is returned so callers can
+// assert on the exact JSON field names sent over the wire.
 //
 // The handler uses t.Errorf for error reporting, which is safe because the
 // blocking HTTP client call in the test goroutine synchronises the handler

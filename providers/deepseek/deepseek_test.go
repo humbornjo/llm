@@ -378,10 +378,8 @@ func TestDeepSeek_CompletionSendsMaxTokensOnWire(t *testing.T) {
 
 	body := capturedBody()
 
-	// DeepSeek is not fully OpenAI-compatible.
-	// The wire request must use max_tokens (not max_completion_tokens)
-	// because that is what the DeepSeek API accepts.
-	// See: https://api-docs.deepseek.com/api/create-chat-completion
+	// DeepSeek is not fully OpenAI-compatible. The wire request must use max_tokens (not max_completion_tokens) because
+	// that is what the DeepSeek API accepts. See: https://api-docs.deepseek.com/api/create-chat-completion
 	require.Contains(t, body, "max_tokens")
 	require.NotContains(t, body, "max_completion_tokens")
 	require.Equal(t, float64(512), body["max_tokens"])
@@ -413,9 +411,8 @@ func TestDeepSeek_CompletionStreamSendsMaxTokensOnWire(t *testing.T) {
 
 	body := capturedBody()
 
-	// DeepSeek is not fully OpenAI-compatible.
-	// The streaming wire request must also use max_tokens (not max_completion_tokens).
-	// See: https://api-docs.deepseek.com/api/create-chat-completion
+	// DeepSeek is not fully OpenAI-compatible. The streaming wire request must also use max_tokens (not
+	// max_completion_tokens). See: https://api-docs.deepseek.com/api/create-chat-completion
 	require.Contains(t, body, "max_tokens")
 	require.NotContains(t, body, "max_completion_tokens")
 	require.Equal(t, float64(512), body["max_tokens"])

@@ -1,7 +1,8 @@
-// Package llm provides a unified interface for interacting with LLM providers.
+// Package llm provides a unified interface for interacting with LLM
+// providers.
 //
-// This package re-exports common types and configuration options from subpackages,
-// allowing most use cases to work with just two imports:
+// This package re-exports common types and configuration options from
+// subpackages, allowing most use cases to work with just two imports:
 //
 //	import (
 //	    "github.com/humbornjo/llm"

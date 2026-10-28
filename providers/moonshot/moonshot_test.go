@@ -72,8 +72,7 @@ func newTestServer(t *testing.T, contentType, fixture string, captured *string) 
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if captured != nil {
-			// The handler runs in its own goroutine; require must not
-			// be used here.
+			// The handler runs in its own goroutine; require must not be used here.
 			body, _ := io.ReadAll(r.Body)
 			*captured = string(body)
 		}

@@ -1,5 +1,6 @@
 // Package deepseek provides a DeepSeek provider implementation for llm.
-// DeepSeek exposes an OpenAI-compatible API with some differences in JSON mode handling.
+// DeepSeek exposes an OpenAI-compatible API with some differences in JSON
+// mode handling.
 package deepseek
 
 import (
@@ -44,8 +45,9 @@ var (
 	_ providers.Provider           = (*Provider)(nil)
 )
 
-// Provider implements the providers.Provider interface for DeepSeek.
-// It embeds openai.CompatibleProvider since DeepSeek exposes an OpenAI-compatible API.
+// Provider implements the providers.Provider interface for DeepSeek. It
+// embeds openai.CompatibleProvider since DeepSeek exposes an
+// OpenAI-compatible API.
 type Provider struct {
 	*openai.CompatibleProvider
 }
@@ -69,8 +71,8 @@ func New(opts ...config.Option) (*Provider, error) {
 	return &Provider{CompatibleProvider: base}, nil
 }
 
-// Completion performs a chat completion request.
-// It overrides the base implementation to handle DeepSeek's JSON mode quirks.
+// Completion performs a chat completion request. It overrides the base
+// implementation to handle DeepSeek's JSON mode quirks.
 func (p *Provider) Completion(
 	ctx context.Context,
 	params providers.CompletionParams,
@@ -79,8 +81,8 @@ func (p *Provider) Completion(
 	return p.CompatibleProvider.Completion(ctx, params)
 }
 
-// CompletionStream performs a streaming chat completion request.
-// It overrides the base implementation to handle DeepSeek's JSON mode quirks.
+// CompletionStream performs a streaming chat completion request. It
+// overrides the base implementation to handle DeepSeek's JSON mode quirks.
 func (p *Provider) CompletionStream(
 	ctx context.Context,
 	params providers.CompletionParams,
@@ -131,9 +133,8 @@ func preprocessParams(params providers.CompletionParams) providers.CompletionPar
 		params.ResponseFormat.JSONSchema.Schema,
 	)
 
-	// Only convert to json_object if schema injection succeeded.
-	// If injection failed (no user message, non-string content, or marshal error),
-	// return original params unchanged to avoid invalid DeepSeek requests.
+	// Only convert to json_object if schema injection succeeded. If injection failed (no user message, non-string
+	// content, or marshal error), return original params unchanged to avoid invalid DeepSeek requests.
 	if !ok {
 		return params
 	}
@@ -162,9 +163,9 @@ func preprocessParams(params providers.CompletionParams) providers.CompletionPar
 }
 
 // transformRequest adjusts the OpenAI SDK request for DeepSeek's API.
-// DeepSeek uses max_tokens, not max_completion_tokens.
-// If both are set, MaxCompletionTokens takes precedence over MaxTokens.
-// See: https://api-docs.deepseek.com/api/create-chat-completion
+// DeepSeek uses max_tokens, not max_completion_tokens. If both are set,
+// MaxCompletionTokens takes precedence over MaxTokens. See:
+// https://api-docs.deepseek.com/api/create-chat-completion
 func transformRequest(req *oaisdk.ChatCompletionNewParams) {
 	if req.MaxCompletionTokens.Valid() {
 		// Set max_tokens using max_completion_tokens value.
@@ -175,9 +176,10 @@ func transformRequest(req *oaisdk.ChatCompletionNewParams) {
 	req.MaxCompletionTokens = param.Opt[int64]{}
 }
 
-// preprocessMessagesForJSONSchema injects the JSON schema into the last user message.
-// Returns the modified messages and true if injection succeeded, or the original messages
-// and false if injection failed (no user message, non-string content, or marshal error).
+// preprocessMessagesForJSONSchema injects the JSON schema into the last
+// user message. Returns the modified messages and true if injection
+// succeeded, or the original messages and false if injection failed (no
+// user message, non-string content, or marshal error).
 func preprocessMessagesForJSONSchema(messages []providers.Message, schema map[string]any) ([]providers.Message, bool) {
 	if len(messages) == 0 {
 		return messages, false
@@ -196,8 +198,8 @@ func preprocessMessagesForJSONSchema(messages []providers.Message, schema map[st
 		return messages, false
 	}
 
-	// Check if content is a simple string. DeepSeek JSON mode doesn't support
-	// multimodal content, so we can't inject schema into content parts.
+	// Check if content is a simple string. DeepSeek JSON mode doesn't support multimodal content, so we can't inject
+	// schema into content parts.
 	targetMsg := messages[lastUserIdx]
 	if targetMsg.IsMultiModal() {
 		return messages, false

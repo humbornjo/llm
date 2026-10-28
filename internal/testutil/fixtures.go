@@ -64,7 +64,8 @@ var LocalProviders = map[string]bool{
 	"vllm":     true,
 }
 
-// providerEnvKeys maps provider names to their API key environment variable names.
+// providerEnvKeys maps provider names to their API key environment
+// variable names.
 var providerEnvKeys = map[string]string{
 	"anthropic":  "ANTHROPIC_API_KEY",
 	"cerebras":   "CEREBRAS_API_KEY",
@@ -181,9 +182,9 @@ func DateTool() providers.ToolInfo {
 	}
 }
 
-// NewTestCalculatorTool returns a calculator tool with multiple parameters for testing.
-// This tool is useful for verifying that parameter order and required fields
-// are correctly preserved during conversion.
+// NewTestCalculatorTool returns a calculator tool with multiple parameters
+// for testing. This tool is useful for verifying that parameter order and
+// required fields are correctly preserved during conversion.
 func NewTestCalculatorTool(t *testing.T) providers.ToolInfo {
 	t.Helper()
 
@@ -222,7 +223,8 @@ func MockWeatherResult(t *testing.T, location string) string {
 	return `{"location": "` + location + `", "temperature": 22, "unit": "celsius", "condition": "sunny"}`
 }
 
-// MockCalculatorResult returns a mock calculator result for testing agent loops.
+// MockCalculatorResult returns a mock calculator result for testing agent
+// loops.
 func MockCalculatorResult(t *testing.T, a float64, b float64, operation string) string {
 	t.Helper()
 
@@ -249,7 +251,8 @@ func MockCalculatorResult(t *testing.T, a float64, b float64, operation string) 
 	return `{"result": ` + formatted + `}`
 }
 
-// HasAPIKey checks if the API key environment variable is set for a provider.
+// HasAPIKey checks if the API key environment variable is set for a
+// provider.
 func HasAPIKey(provider string) bool {
 	if LocalProviders[provider] {
 		return true
@@ -262,8 +265,8 @@ func HasAPIKey(provider string) bool {
 	return os.Getenv(envKey) != ""
 }
 
-// SkipIfNoAPIKey skips the test if the API key is not set.
-// Returns true if the test should be skipped.
+// SkipIfNoAPIKey skips the test if the API key is not set. Returns true if
+// the test should be skipped.
 func SkipIfNoAPIKey(provider string) bool {
 	return !HasAPIKey(provider)
 }

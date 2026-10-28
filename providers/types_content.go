@@ -182,9 +182,9 @@ func (*ContentPartFile) GetType() ContentPartType {
 	return CONTENT_PART_FILE
 }
 
-// ContentPartVideo is a video URL content part. It is a provider
-// extension beyond the OpenAI content model (e.g. Kimi's video_url);
-// providers that cannot accept it reject the message.
+// ContentPartVideo is a video URL content part. It is a provider extension
+// beyond the OpenAI content model (e.g. Kimi's video_url); providers that
+// cannot accept it reject the message.
 type ContentPartVideo struct {
 	VideoURL *VideoURL
 }
@@ -258,8 +258,7 @@ func (p ContentPart) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.value)
 }
 
-// UnmarshalJSON decodes one content part, discriminated by its type
-// field.
+// UnmarshalJSON decodes one content part, discriminated by its type field.
 func (p *ContentPart) UnmarshalJSON(data []byte) error {
 	var discriminator struct {
 		Type *ContentPartType `json:"type"`
@@ -386,10 +385,8 @@ func unmarshalStrict(data []byte, value any) error {
 }
 
 func (m Message) MarshalJSON() ([]byte, error) {
-	// A message that only carries tool calls has no content; the
-	// OpenAI wire form is an explicit null, and strict providers
-	// reject an empty string or empty parts list. Any other
-	// content-less message is a caller bug.
+	// A message that only carries tool calls has no content; the OpenAI wire form is an explicit null, and strict
+	// providers reject an empty string or empty parts list. Any other content-less message is a caller bug.
 	if m.Content.Unwrap() == nil && len(m.ToolCalls) == 0 {
 		return nil, errors.New("message content is required")
 	}

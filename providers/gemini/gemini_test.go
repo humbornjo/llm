@@ -968,10 +968,9 @@ func TestGemini_ThoughtSignatureWireFormat(t *testing.T) {
 		// The Part should have the raw bytes.
 		require.Equal(t, realSig, content.Parts[0].ThoughtSignature)
 
-		// When marshaled, json.Marshal base64-encodes the raw bytes — which
-		// produces a double-encoded value on the wire. This is the expected
-		// (if unfortunate) behaviour until the upstream SDK changes
-		// ThoughtSignature from []byte to string.
+		// When marshaled, json.Marshal base64-encodes the raw bytes — which produces a double-encoded value on the wire.
+		// This is the expected (if unfortunate) behaviour until the upstream SDK changes ThoughtSignature from []byte to
+		// string.
 		raw, err := json.Marshal(content.Parts[0])
 		require.NoError(t, err)
 

@@ -36,8 +36,9 @@ var (
 	_ providers.Provider           = (*Provider)(nil)
 )
 
-// Provider implements the providers.Provider interface for Moonshot AI.
-// It embeds openai.CompatibleProvider since Kimi exposes an OpenAI-compatible API.
+// Provider implements the providers.Provider interface for Moonshot AI. It
+// embeds openai.CompatibleProvider since Kimi exposes an OpenAI-compatible
+// API.
 type Provider struct {
 	*openai.CompatibleProvider
 }
@@ -109,9 +110,9 @@ func convertResponseExtensions(raw *oaisdk.ChatCompletion, normalized *providers
 }
 
 // reasoningFrom extracts reasoning_content from provider-specific extra
-// fields, returning nil when it is absent or empty. Extra fields carry
-// an invalid status because they match no schema field, so presence —
-// not Valid — is the signal.
+// fields, returning nil when it is absent or empty. Extra fields carry an
+// invalid status because they match no schema field, so presence — not
+// Valid — is the signal.
 func reasoningFrom(extraFields map[string]respjson.Field) *providers.Reasoning {
 	field, ok := extraFields[_FIELD_REASONING_CONTENT]
 	if !ok {
